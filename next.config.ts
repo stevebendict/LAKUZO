@@ -1,15 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Note: 'output' and 'images' are gone.
-
+  // TypeScript errors are still ignored here
   typescript: {
     ignoreBuildErrors: true,
   },
 
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  
 
   webpack: (config) => {
     config.externals.push("pino-pretty", "lokijs", "encoding");
