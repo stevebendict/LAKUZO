@@ -15,7 +15,6 @@ interface Market {
   platform: string;
   volume_usd: number;
   current_yes_price: number;
-  // New fields for Order Book
   best_ask_yes: number | null;
   best_ask_no: number | null;
   image_url: string;
@@ -24,102 +23,103 @@ interface Market {
   winning_outcome: string | null;
 }
 
+const formatEnding = (dateString: string) => {
+  const end = new Date(dateString);
+  const now = new Date();
+  const diffHours = (end.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours < 0) return "Ended";
+  if (diffHours < 24) return `${Math.ceil(diffHours)}h Left`;
+  if (diffHours < 48) return "Tomorrow";
+  
+  // ✅ LOGIC MAINTAINED: Year is included
+  return end.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  }); 
+};
+
 export default function MarketList() {
   const router = useRouter();
   
-  // --- STATE ---
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  
-  // Pagination
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const ITEMS_PER_PAGE = 50;
-
-  // Filters
+  
+  // --- FILTERS ---
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [platform, setPlatform] = useState('ALL'); 
   const [status, setStatus] = useState('ACTIVE'); 
   const [sortBy, setSortBy] = useState('volume_desc');
-  
-  // Date Range
+  // ✅ FEATURE RESTORED: Date Filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // 1. DEBOUNCE
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 600);
+    const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // 2. FETCH TRIGGER
   useEffect(() => {
     setPage(0);
     setHasMore(true);
     fetchMarkets(0, true); 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platform, status, sortBy, debouncedSearch, startDate, endDate]); 
 
-  // 3. MASTER FETCH
   async function fetchMarkets(pageIndex: number, isFresh: boolean) {
     if (isFresh) setLoading(true);
-    else setLoadingMore(true);
     
     let query = supabase.from('markets').select('*');
 
-    // Filters
     if (debouncedSearch.trim()) query = query.ilike('title', `%${debouncedSearch}%`);
-    if (status === 'ACTIVE') query = query.eq('active', true);
-    else if (status === 'RESOLVED') query = query.eq('active', false);
+    
+    // ✅ LOGIC MAINTAINED: Live = Future Only
+    if (status === 'ACTIVE') {
+      query = query.eq('active', true).gt('end_date', new Date().toISOString());
+    } 
+    else if (status === 'RESOLVED') {
+      query = query.eq('active', false);
+    }
+    
     if (platform !== 'ALL') query = query.ilike('platform', platform); 
+    
+    // ✅ FEATURE RESTORED: Date Query Logic
     if (startDate) query = query.gte('end_date', startDate);
     if (endDate) query = query.lte('end_date', endDate);
 
-    // Sorting
     switch (sortBy) {
-      case 'volume_desc': query = query.order('volume_usd', { ascending: false, nullsFirst: false }); break;
-      case 'volume_asc': query = query.order('volume_usd', { ascending: true, nullsFirst: false }); break;
+      case 'volume_desc': query = query.order('volume_usd', { ascending: false }); break;
+      case 'volume_asc': query = query.order('volume_usd', { ascending: true }); break;
       case 'ending_asc': query = query.order('end_date', { ascending: true }); break;
       case 'ending_desc': query = query.order('end_date', { ascending: false }); break;
       default: query = query.order('volume_usd', { ascending: false });
     }
 
+    const ITEMS_PER_PAGE = 20;
     const from = pageIndex * ITEMS_PER_PAGE;
     const to = from + ITEMS_PER_PAGE - 1;
     const { data, error } = await query.range(from, to);
 
-    if (error) {
-      console.error('Error:', error);
-    } else {
-      const newMarkets = data || [];
+    if (!error && data) {
+      const newMarkets = data as Market[];
       if (newMarkets.length < ITEMS_PER_PAGE) setHasMore(false);
+      
       if (isFresh) setMarkets(newMarkets);
       else setMarkets(prev => [...prev, ...newMarkets]);
     }
-    
     setLoading(false);
-    setLoadingMore(false);
   }
 
-  const handleLoadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchMarkets(nextPage, false);
-  };
-
-  const handleReset = () => {
-    setSearch('');
-    setPlatform('ALL');
-    setStatus('ACTIVE');
-    setSortBy('volume_desc');
-    setStartDate('');
-    setEndDate('');
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchMarkets(next, false);
   };
 
   const toggleSelection = (id: string) => {
@@ -129,154 +129,142 @@ export default function MarketList() {
     setSelectedIds(newSet);
   };
 
-  const handleGroupView = () => {
-    const idsParam = Array.from(selectedIds).join(',');
-    router.push(`/workspace?markets=${idsParam}`);
-  };
-
   return (
-    <div className="container">
+    // ✅ UI FIX: Using Dark Mode Class
+    <div className="mobile-container-dark">
       
-      {/* CONTROLS (Same as before) */}
-      <div className="screener-controls-v2">
-        <div className="search-row">
-          <input 
-            type="text" 
-            placeholder="Search markets..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input-full"
-          />
+      {/* --- HEADER --- */}
+      <div className="sticky-header-dark">
+        <input 
+          type="text" 
+          placeholder="🔍 Search markets..." 
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="search-bar-dark"
+        />
+        
+        <div className="filter-row">
+           <select value={status} onChange={e => setStatus(e.target.value)} className="pill-select-dark">
+             <option value="ACTIVE">🟢 Live Only</option>
+             <option value="ALL">All Status</option>
+             <option value="RESOLVED">🏁 Resolved</option>
+           </select>
+
+           <select value={platform} onChange={e => setPlatform(e.target.value)} className="pill-select-dark">
+             <option value="ALL">All Apps</option>
+             <option value="Kalshi">Kalshi</option>
+             <option value="Polymarket">Polymarket</option>
+           </select>
+           
+           <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="pill-select-dark flex-grow">
+             <option value="volume_desc">🔥 High Vol</option>
+             <option value="volume_asc">Low Vol</option>
+             <option value="ending_asc">⏳ Ends Soon</option>
+             <option value="ending_desc">Ends Later</option>
+           </select>
         </div>
-        <div className="filter-grid">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="filter-select">
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Live Only</option>
-            <option value="RESOLVED">Resolved</option>
-          </select>
-          <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="filter-select">
-            <option value="ALL">All Platforms</option>
-            <option value="Polymarket">Polymarket</option>
-            <option value="Kalshi">Kalshi</option>
-          </select>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="filter-select">
-            <option value="volume_desc">High Volume</option>
-            <option value="volume_asc">Low Volume</option>
-            <option value="ending_asc">Ending Soon</option>
-            <option value="ending_desc">Ending Later</option>
-          </select>
-          <button onClick={handleReset} className="reset-btn">Reset</button>
-        </div>
-        <div className="date-row">
-           <div className="date-group">
-             <span className="tiny-label">Ends After:</span>
-             <input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className="date-input" />
-           </div>
-           <div className="date-group">
-             <span className="tiny-label">Ends Before:</span>
-             <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="date-input" />
-           </div>
+
+        {/* ✅ FEATURE RESTORED: Date Pickers */}
+        <div className="filter-row mt-2">
+            <div className="date-group-dark">
+                <span className="tiny-label">Ends After</span>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="date-input-dark"/>
+            </div>
+            <div className="date-group-dark">
+                <span className="tiny-label">Ends Before</span>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="date-input-dark"/>
+            </div>
         </div>
       </div>
 
-      {/* MARKET LIST */}
-      <div className="market-list-container">
-        {loading && <div className="loading">Fetching Data...</div>}
-        
-        {!loading && markets.length === 0 && (
-          <div className="empty-state">No markets match your filters.</div>
-        )}
+      {/* --- MARKET FEED --- */}
+      <div className="market-feed">
+        {loading && <div className="loading-spinner-dark">Scanning Markets...</div>}
 
         {!loading && markets.map((market) => {
           const isSelected = selectedIds.has(market.id);
-          const hasValidImage = market.image_url && !market.image_url.includes('default.svg');
-
-          // --- PRICE LOGIC ---
-          // Fallback to "current_yes_price" if "best_ask" is empty
           const yesPrice = market.best_ask_yes ?? market.current_yes_price;
-          // If NO ask is missing, calculate from YES (1 - yes) as placeholder
-          const noPrice = market.best_ask_no ?? (market.current_yes_price ? 1 - market.current_yes_price : 0);
+          const noPrice = market.best_ask_no ?? (1 - (yesPrice || 0.5));
           
-          // Check Arbitrage (Only if we have REAL asks)
-          const totalCost = (market.best_ask_yes || 0) + (market.best_ask_no || 0);
-          const isArb = market.best_ask_yes && market.best_ask_no && totalCost < 0.99 && market.active;
+          const totalCost = (yesPrice || 0) + (noPrice || 0);
+          
+          // ✅ FEATURE RESTORED: Full Arbitrage Logic (Buy & Mint)
+          const isBuyArb = totalCost < 0.99 && market.active;
+          const isMintArb = totalCost > 1.01 && market.active;
+          const isArb = isBuyArb || isMintArb;
+          
+          let profitText = '';
+          if (isBuyArb) profitText = `Buy Arb (+${((1 - totalCost) * 100).toFixed(1)}%)`;
+          if (isMintArb) profitText = `Mint Arb (+${((totalCost - 1) * 100).toFixed(1)}%)`;
 
           return (
             <div 
-              key={market.id} 
-              className={`market-card-row ${isSelected ? 'selected' : ''} ${isArb ? 'arb-highlight' : ''}`}
+              key={market.id}
               onClick={() => router.push(`/market?id=${market.id}`)}
+              className={`market-card-dark ${isSelected ? 'selected' : ''} ${isArb ? 'arb-glow-gold' : ''}`}
             >
-              {/* Checkbox */}
-              <div 
-                className="checkbox-area"
-                onClick={(e) => { e.stopPropagation(); toggleSelection(market.id); }}
-              >
-                <div className={`checkbox ${isSelected ? 'checked' : ''}`}>
+              {isArb && <div className="arb-badge-gold">⚡ {profitText}</div>}
+
+              <div className="card-top">
+                {/* ✅ FEATURE RESTORED: Kalshi "K" Placeholder */}
+                {market.platform === 'Kalshi' ? (
+                  <div className="kalshi-k-placeholder">K</div>
+                ) : (
+                  <img 
+                    src={market.image_url} 
+                    className="market-icon"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+
+                <div className="card-meta">
+                  <h3 className="market-title-dark">{market.title}</h3>
+                  <div className="market-stats-dark">
+                    <span className={`platform-tag ${market.platform.toLowerCase()}`}>{market.platform}</span>
+                    <span>${(market.volume_usd / 1000).toFixed(0)}k Vol</span>
+                    <span className={new Date(market.end_date) < new Date(Date.now() + 86400000) ? 'text-urgent' : ''}>
+                      {formatEnding(market.end_date)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div 
+                  onClick={(e) => { e.stopPropagation(); toggleSelection(market.id); }}
+                  className={`check-circle ${isSelected ? 'checked' : ''}`}
+                >
                   {isSelected && '✓'}
                 </div>
               </div>
 
-              {/* Icon & Title */}
-              <div className="content-area">
-                <div className="icon-wrapper">
-                  {hasValidImage ? (
-                    <img src={market.image_url} alt="icon" className="market-icon" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
-                  ) : (
-                    <div className="market-icon-placeholder kalshi-placeholder">K</div>
-                  )}
-                  <div className="market-icon-placeholder kalshi-placeholder hidden">K</div>
+              <div className="card-actions">
+                <div className="price-btn-dark yes-btn-dark">
+                  <span className="label">YES</span>
+                  <span className="val">{market.active ? (yesPrice * 100).toFixed(0) + '¢' : '-'}</span>
                 </div>
 
-                <div className="text-info">
-                  <h3 className="market-title">{market.title}</h3>
-                  <div className="meta-tags">
-                    <span className={`platform-badge ${market.platform.toLowerCase()}`}>{market.platform}</span>
-                    <span className="vol-badge">${Number(market.volume_usd).toLocaleString()} Vol</span>
-                    {isArb && <span className="arb-badge">⚡ ARB OPPORTUNITY</span>}
-                    {!market.active && <span className="status-badge ended">ENDED</span>}
-                  </div>
+                <div className="price-btn-dark no-btn-dark">
+                  <span className="label">NO</span>
+                  <span className="val">{market.active ? (noPrice * 100).toFixed(0) + '¢' : '-'}</span>
                 </div>
-              </div>
-
-              {/* NEW DUAL PRICE AREA */}
-              <div className="dual-price-area">
-                {market.active ? (
-                  <>
-                    <div className="price-box yes">
-                      <span className="p-label">YES</span>
-                      <span className="p-val">{yesPrice ? `$${yesPrice.toFixed(2)}` : '-'}</span>
-                    </div>
-                    <div className="price-box no">
-                      <span className="p-label">NO</span>
-                      <span className="p-val">{noPrice ? `$${noPrice.toFixed(2)}` : '-'}</span>
-                    </div>
-                  </>
-                ) : (
-                  // If Ended, show Winner
-                  <div className={`winner-badge ${market.winning_outcome === 'YES' ? 'win-yes' : 'win-no'}`}>
-                    {market.winning_outcome ? `${market.winning_outcome} WON` : 'RESOLVING'}
-                  </div>
-                )}
               </div>
             </div>
           );
         })}
 
-        {/* Load More */}
-        {!loading && hasMore && (
-          <button onClick={handleLoadMore} disabled={loadingMore} className="load-more-btn">
-            {loadingMore ? 'Loading...' : 'Load More'}
-          </button>
+        {hasMore && !loading && (
+           <button onClick={loadMore} className="load-more-dark">Load More Markets ↓</button>
         )}
+        
+        <div className="spacer-bottom" />
       </div>
 
-      {/* FAB */}
       {selectedIds.size > 0 && (
-        <div className="floating-fab-container">
-          <button onClick={handleGroupView} className="fab-analyze-btn">
-            Analyze {selectedIds.size} Markets
-            <span className="arrow-icon">→</span>
+        <div className="fab-container">
+          <button 
+            onClick={() => router.push(`/workspace?ids=${Array.from(selectedIds).join(',')}`)}
+            className="fab-btn-dark"
+          >
+            Analyze {selectedIds.size} Markets →
           </button>
         </div>
       )}

@@ -11,7 +11,17 @@ export default function BottomNav() {
 
   return (
     <nav className="bottom-nav">
-      {/* 1. EXPLORE (Home) */}
+{/* 1. DASHBOARD */}
+      <Link href="/dashboard" className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span>Dashboard</span>
+      </Link>      
+
+
+{/* 2. EXPLORE (Home) */}
       <Link href="/" className={`nav-item ${isActive('/') ? 'active' : ''}`}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"/>
@@ -20,14 +30,7 @@ export default function BottomNav() {
         <span>Explore</span>
       </Link>
 
-      {/* 2. WATCHLIST */}
-      <Link href="/watchlist" className={`nav-item ${isActive('/watchlist') ? 'active' : ''}`}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        <span>Watchlist</span>
-      </Link>
+      
 
       {/* 3. LEADERBOARD */}
       <Link href="/leaderboard" className={`nav-item ${isActive('/leaderboard') ? 'active' : ''}`}>
@@ -42,13 +45,13 @@ export default function BottomNav() {
         <span>Rank</span>
       </Link>
 
-      {/* 4. ACCOUNT */}
-      <Link href="/account" className={`nav-item ${isActive('/account') ? 'active' : ''}`}>
+      {/* 4. SUBSCRIPTION (PRO) */}
+      <Link href="/subscription" className={`nav-item ${isActive('/subscription') ? 'active' : ''}`}>
+        {/* Crown Icon */}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
+           <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
         </svg>
-        <span>Account</span>
+        <span>PRO</span>
       </Link>
     </nav>
   );

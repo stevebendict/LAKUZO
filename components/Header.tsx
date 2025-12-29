@@ -5,15 +5,15 @@ import Link from 'next/link';
 
 export default function Header() {
   return (
-    <header className="header">
-      {/* 1. Logo (Changed div to Link so it clicks to Home) */}
-      <Link href="/" className="logo">
+    <header className="app-header">
+      {/* 1. Logo (Premium Text Gradient) */}
+      <Link href="/" className="logo-text">
         LAKUZO
       </Link>
       
-      {/* 2. The Wallet Button (Moved exactly as is) */}
-      <div>
-        <ConnectWallet />
+      {/* 2. Wallet Button (Contained) */}
+      <div className="wallet-wrapper">
+        <ConnectWallet className="cb-wallet-custom" />
       </div>
     </header>
   );

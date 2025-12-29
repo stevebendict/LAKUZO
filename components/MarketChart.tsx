@@ -1,75 +1,163 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid 
+} from 'recharts';
+
+interface HistoryPoint { t: string; p: number; }
 
 interface MarketChartProps {
-  marketId: string;
-  platform: string;
+  history: HistoryPoint[];
   currentPrice: number;
-  timeRange?: '1D' | '1W' | '1M'; // Added prop
+  isResolved?: boolean;
 }
 
-export default function MarketChart({ marketId, platform, currentPrice, timeRange = '1D' }: MarketChartProps) {
-  const [data, setData] = useState<any[]>([]);
+export default function MarketChart({ history, currentPrice, isResolved }: MarketChartProps) {
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [view, setView] = useState('ALL'); // Internal State for Zoom
+  const [color, setColor] = useState('#22c55e');
 
   useEffect(() => {
-    generateSyntheticData(currentPrice, timeRange);
-  }, [marketId, currentPrice, timeRange]);
+    // 1. Determine Color (Green if UP, Red if DOWN)
+    const startPrice = history?.length > 0 ? history[0].p : currentPrice;
+    const isPositive = currentPrice >= startPrice;
+    setColor(isResolved ? '#888' : (isPositive ? '#22c55e' : '#ef4444'));
 
-  const generateSyntheticData = (price: number, range: string) => {
-    const points = [];
-    let tempPrice = price;
-    let iterations = 24; // Default 1D (Hours)
-    let label = 'Time';
+    if (!history) return;
 
-    // Configure loop based on Range
-    if (range === '1W') iterations = 7; // Days
-    if (range === '1M') iterations = 30; // Days
+    // 2. Format Data
+    let formatted = history.map(point => ({
+      time: new Date(point.t).getTime(),
+      displayDate: new Date(point.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      displayTime: new Date(point.t).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' }),
+      price: point.p
+    }));
 
-    for (let i = iterations; i >= 0; i--) {
-      // More volatility for longer timeframes
-      const volatility = range === '1D' ? 0.05 : 0.15; 
-      const noise = (Math.random() - 0.5) * volatility; 
+    // 3. Filter Data based on "View" (Client-Side Zoom)
+    const now = new Date().getTime();
+    if (view !== 'ALL') {
+      let cutoff = 0;
+      if (view === '1H') cutoff = now - (60 * 60 * 1000);
+      if (view === '6H') cutoff = now - (6 * 60 * 60 * 1000);
+      if (view === '1D') cutoff = now - (24 * 60 * 60 * 1000);
+      if (view === '1W') cutoff = now - (7 * 24 * 60 * 60 * 1000);
+      if (view === '1M') cutoff = now - (30 * 24 * 60 * 60 * 1000);
       
-      tempPrice = Math.max(0.01, Math.min(0.99, tempPrice - noise));
-      
-      points.push({
-        label: i === 0 ? 'Now' : `-${i}${range === '1D' ? 'h' : 'd'}`,
-        price: tempPrice
-      });
+      formatted = formatted.filter(pt => pt.time >= cutoff);
     }
-    // Force exact current price at the end
-    points[points.length - 1].price = price;
-    setData(points);
+
+    // 4. Add Live Point (Connect line to current price)
+    // We append this AFTER filtering so the line always ends at "Now"
+    formatted.push({
+      time: now,
+      displayDate: isResolved ? 'Final' : 'Live',
+      displayTime: isResolved ? 'Closed' : 'Now',
+      price: currentPrice
+    });
+
+    setChartData(formatted);
+  }, [history, currentPrice, isResolved, view]);
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{ background: '#111', border: '1px solid #333', padding: '8px', borderRadius: '4px', fontSize: '12px', zIndex: 100 }}>
+          <div style={{ color: '#888' }}>{payload[0].payload.displayDate} • {payload[0].payload.displayTime}</div>
+          <div style={{ color: color, fontWeight: 'bold', fontSize: '14px' }}>
+            {(payload[0].value * 100).toFixed(1)}¢
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
-    <div style={{ width: '100%', height: 200, marginTop: 10 }}>
-      <ResponsiveContainer>
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <XAxis dataKey="label" hide />
-          <YAxis domain={[0, 1]} hide />
-          <Tooltip 
-            contentStyle={{ background: '#111', border: '1px solid #333' }}
-            formatter={(value: number) => [`${(value * 100).toFixed(1)}%`, 'Probability']}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="price" 
-            stroke="#3b82f6" 
-            strokeWidth={2}
-            fillOpacity={1} 
-            fill="url(#colorPrice)" 
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div style={{ width: '100%', userSelect: 'none' }}>
+      
+      {/* HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px', padding: '0 4px' }}>
+        <div>
+          <div style={{ fontSize: '32px', fontWeight: '900', color: color, lineHeight: '1' }}>
+            {(currentPrice * 100).toFixed(1)}¢
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: 'bold', color: color, opacity: 0.8, marginTop: '4px' }}>
+            {isResolved ? 'Market Resolved' : (view === 'ALL' ? 'All Time' : `Past ${view}`)}
+          </div>
+        </div>
+
+        {/* TIME TOGGLES (Client Side) */}
+        <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '8px' }}>
+          {(['1H', '6H', '1D', '1W', '1M', 'ALL'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => setView(r)}
+              style={{
+                background: view === r ? '#333' : 'transparent',
+                color: view === r ? '#fff' : '#666',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                minWidth: '30px',
+                transition: 'all 0.2s'
+              }}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* CHART */}
+      <div style={{ width: '100%', height: '240px' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.2}/>
+                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            
+            <CartesianGrid stroke="#222" vertical={false} strokeDasharray="3 3" />
+            
+            <XAxis 
+              dataKey="time" 
+              type="number" 
+              domain={['dataMin', 'dataMax']} 
+              tickFormatter={(unix) => {
+                 const date = new Date(unix);
+                 return ['1W', '1M', 'ALL'].includes(view) 
+                    ? date.toLocaleDateString(undefined, {month:'short', day:'numeric'}) 
+                    : date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+              }}
+              hide={false}
+              axisLine={false}
+              tickLine={false}
+              minTickGap={40}
+              style={{ fontSize: '10px', fill: '#555' }}
+            />
+            <YAxis domain={['auto', 'auto']} hide />
+
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#444', strokeWidth: 1 }} />
+            
+            <Area 
+              type="linear" // Linear = Smooth Polymarket look
+              dataKey="price" 
+              stroke={color} 
+              strokeWidth={2} 
+              fillOpacity={1} 
+              fill="url(#colorPrice)" 
+              isAnimationActive={true}
+              animationDuration={300}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

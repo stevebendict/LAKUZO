@@ -1,63 +1,143 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation'; // CHANGED
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { useAccount } from 'wagmi';
+import { useRouter } from 'next/navigation';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const BASESCAN_URL = "https://sepolia.basescan.org/tx"; 
+
 function ProfileContent() {
   const searchParams = useSearchParams();
-  const slug = searchParams.get('slug'); // CHANGED: Get slug from ?slug=...
+  const targetAddress = searchParams.get('address'); 
+  const router = useRouter();
   
-  const { address: myAddress } = useAccount();
+  const { address: myAddress } = useAccount(); // The Visitor
+  
+  // --- STATE ---
   const [profile, setProfile] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [stats, setStats] = useState({ followers: 0, following: 0, reputation: 100, totalVotes: 0 });
+  const [activeTab, setActiveTab] = useState<'WORKSPACES' | 'HISTORY'>('WORKSPACES');
+  const [items, setItems] = useState<any[]>([]); // Data for the active tab
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
 
+  // 1. INITIAL FETCH
   useEffect(() => {
-    if (slug) fetchPublicProfile();
-  }, [slug, myAddress]);
+    if (targetAddress) {
+        fetchPublicProfile();
+    }
+  }, [targetAddress, myAddress]); // Re-run if my wallet connects/disconnects
+
+  // 2. TAB SWITCHER
+  useEffect(() => {
+    if (profile) fetchTabContent();
+  }, [activeTab, profile]);
 
   async function fetchPublicProfile() {
     setLoading(true);
-    let userQuery = supabase.from('users').select('*');
     
-    const term = String(slug);
-    if (term.startsWith('0x')) {
-      userQuery = userQuery.eq('wallet_address', term);
-    } else {
-      const cleanName = term.replace('%40', '').replace('@', ''); 
-      userQuery = userQuery.eq('username', cleanName);
+    // A. GET USER DETAILS
+    const { data: user } = await supabase.from('users').select('*').eq('wallet_address', targetAddress).maybeSingle();
+    const displayUser = user || { username: 'Anon', wallet_address: targetAddress, reputation_score: 100, total_votes: 0 };
+    setProfile(displayUser);
+
+    // B. GET SOCIAL STATS
+    const { count: followers } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_address', targetAddress);
+    const { count: following } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_address', targetAddress);
+    
+    setStats({ 
+       followers: followers || 0, 
+       following: following || 0, 
+       reputation: displayUser.reputation_score,
+       totalVotes: displayUser.total_votes || 0
+    });
+    // C. CHECK IF I AM FOLLOWING THEM
+    if (myAddress && targetAddress) {
+      const { data: follow } = await supabase
+        .from('follows')
+        .select('*')
+        .eq('follower_address', myAddress)
+        .eq('following_address', targetAddress)
+        .maybeSingle();
+      
+      setIsFollowing(!!follow);
     }
 
-    const { data: user } = await userQuery.maybeSingle();
-
-    if (!user) { setLoading(false); return; }
-    setProfile(user);
-
-    const { data: votes } = await supabase.from('votes').select(`choice, created_at, markets (title)`).eq('wallet_address', user.wallet_address).order('created_at', { ascending: false });
-    setHistory(votes || []);
-
-    if (myAddress) {
-      const { data: follow } = await supabase.from('follows').select('*').eq('follower_address', myAddress).eq('following_address', user.wallet_address).maybeSingle();
-      if (follow) setIsFollowing(true);
-    }
     setLoading(false);
   }
 
+  async function fetchTabContent() {
+    if (!targetAddress) return;
+    
+    // TAB 1: PUBLIC WORKSPACES (The Curated Content)
+    if (activeTab === 'WORKSPACES') {
+        // Fetch workspaces EXCLUDING "My Watchlist" (Private default)
+        const { data: ws } = await supabase
+           .from('watchlists')
+           .select('*')
+           .eq('user_wallet', targetAddress)
+           .neq('name', 'My Watchlist') 
+           .order('created_at', { ascending: false });
+
+        if (ws && ws.length > 0) {
+            // Fetch previews manually (Robust Method)
+            const wsIds = ws.map(w => w.id);
+            const { data: wItems } = await supabase.from('watchlist_items').select('watchlist_id, market_id').in('watchlist_id', wsIds);
+            
+            if (wItems && wItems.length > 0) {
+                const marketIds = wItems.map((i: any) => i.market_id);
+                const { data: markets } = await supabase.from('markets').select('id, image_url').in('id', marketIds);
+                
+                const richData = ws.map(w => {
+                    const myItemIds = wItems.filter((i: any) => i.watchlist_id === w.id).map((i: any) => i.market_id);
+                    const images = markets?.filter((m: any) => myItemIds.includes(m.id)).map((m: any) => m.image_url).filter(Boolean).slice(0, 4) || [];
+                    return { ...w, previewImages: images, count: images.length };
+                });
+                setItems(richData);
+            } else {
+                setItems(ws.map(w => ({ ...w, previewImages: [], count: 0 })));
+            }
+        } else {
+            setItems([]);
+        }
+    }
+
+    // TAB 2: VOTE HISTORY (The "Skin in the Game" Proof)
+    else if (activeTab === 'HISTORY') {
+        const { data: votes } = await supabase
+           .from('votes')
+           .select('*, markets(title)')
+           .eq('wallet_address', targetAddress)
+           .order('created_at', { ascending: false });
+        
+        setItems(votes || []);
+    }
+  }
+
+  // --- ACTIONS ---
+
   const handleFollowToggle = async () => {
-    if (!myAddress) return alert("Connect wallet to follow.");
+    if (!myAddress) return alert("Please connect your wallet to follow.");
+    if (!targetAddress) return;
+
+    // Optimistic Update
     setIsFollowing(!isFollowing);
+    setStats(prev => ({ 
+        ...prev, 
+        followers: isFollowing ? prev.followers - 1 : prev.followers + 1 
+    }));
+
     if (isFollowing) {
-      await supabase.from('follows').delete().eq('follower_address', myAddress).eq('following_address', profile.wallet_address);
+      await supabase.from('follows').delete().eq('follower_address', myAddress).eq('following_address', targetAddress);
     } else {
-      await supabase.from('follows').insert({ follower_address: myAddress, following_address: profile.wallet_address });
+      await supabase.from('follows').insert({ follower_address: myAddress, following_address: targetAddress });
     }
   };
 
@@ -66,44 +146,113 @@ function ProfileContent() {
     alert("🔗 Profile Link Copied!");
   };
 
-  if (loading) return <div className="loading">Searching Database...</div>;
-  if (!profile) return <div className="container center-msg">User not found</div>;
+  if (loading && !profile) return <div className="loading-wrapper"><div className="spinner"></div></div>;
+  if (!targetAddress) return <div className="empty-box">User not found</div>;
 
-  const isMe = myAddress && profile.wallet_address.toLowerCase() === myAddress.toLowerCase();
+  const isMe = myAddress && targetAddress.toLowerCase() === myAddress.toLowerCase();
 
   return (
-    <div className="container" style={{ paddingBottom: '120px' }}>
-      <div className="profile-header-clean">
-         <div className="ph-left">
-            <h1 className="ph-name">{profile.username ? `@${profile.username}` : 'Anonymous Trader'}</h1>
-            <div className="ph-meta">
-               <span className="ph-addr">{profile.wallet_address.substring(0,6)}...{profile.wallet_address.slice(-4)}</span>
-               <span className="ph-rep-tag">{profile.reputation_score} REP</span>
+    <div className="mobile-container-dark" style={{ paddingBottom: '120px' }}>
+      
+      {/* PUBLIC HEADER */}
+      <div className="profile-header">
+         <div className="profile-top">
+            <div className="profile-avatar-lg">
+               {(profile?.username?.[0])?.toUpperCase() || '👤'}
+            </div>
+            <div className="profile-stats-group">
+               <div className="stat-item">
+                  <span className="stat-num">{stats.reputation}</span>
+                  <span className="stat-label">Rep</span>
+               </div>
+               <div className="stat-item">
+                  <span className="stat-num">{stats.totalVotes}</span>
+                  <span className="stat-label">Votes</span>
+               </div>
+               {/* STATIC STATS (Not Clickable for Visitors) */}
+               <div className="stat-item">
+                  <span className="stat-num">{stats.followers}</span>
+                  <span className="stat-label">Followers</span>
+               </div>
+               <div className="stat-item">
+                  <span className="stat-num">{stats.following}</span>
+                  <span className="stat-label">Following</span>
+               </div>
             </div>
          </div>
-         <div className="ph-right">
-             {!isMe && (
-               <button onClick={handleFollowToggle} className={`control-btn ${isFollowing ? 'logout' : 'edit'}`} style={{minWidth: '90px'}}>
-                 {isFollowing ? 'Unfollow' : 'Follow'}
-               </button>
-             )}
-             <button onClick={handleShare} className="icon-btn-share" title="Share">🔗</button>
+         
+         <div className="profile-bio">
+            <h1 className="real-name">{profile?.username || 'Anonymous Trader'}</h1>
+            <p className="wallet-tag">{targetAddress.slice(0,6)}...{targetAddress.slice(-4)}</p>
+         </div>
+
+         <div className="profile-actions">
+            {!isMe && (
+                <button 
+                  onClick={handleFollowToggle} 
+                  className={isFollowing ? "btn-edit-profile" : "btn-primary-full"}
+                  style={isFollowing ? {} : { marginTop: 0 }} // Remove margin if using primary style
+                >
+                  {isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+            )}
+            <button className="btn-share-profile" onClick={handleShare}>Share Profile</button>
          </div>
       </div>
-      <div className="stats-row-simple" style={{marginTop:'20px'}}>
-         <div className="stat-box"><span className="val">{history.length}</span><span className="lbl">Votes Cast</span></div>
-         <div className="stat-box"><span className="val">--</span><span className="lbl">Win Rate</span></div>
-      </div>
-      <h3 className="section-title" style={{marginTop:'30px'}}>Recent Activity</h3>
-      <div className="history-list">
-        {history.length === 0 ? <div className="empty-text">No public activity.</div> : (
-          history.map((vote: any, i) => (
-            <div key={i} className="history-item">
-               <div className="h-left"><div className="h-title">{vote.markets?.title || 'Unknown Market'}</div><div className="h-date">{new Date(vote.created_at).toLocaleDateString()}</div></div>
-               <div className="h-right"><span className={`vote-tag ${vote.choice === 'YES' ? 'yes' : 'no'}`}>VOTED {vote.choice}</span></div>
+
+      {/* TABS (No Search Bar - Keep it Clean) */}
+      <div className="sticky-control-bar">
+         <div className="ios-segment-wrapper">
+            <div className="ios-segment">
+                <button className={`seg-btn ${activeTab === 'WORKSPACES' ? 'active' : ''}`} onClick={() => setActiveTab('WORKSPACES')}>Bundles</button>
+                <button className={`seg-btn ${activeTab === 'HISTORY' ? 'active' : ''}`} onClick={() => setActiveTab('HISTORY')}>History</button>
             </div>
-          ))
-        )}
+         </div>
+      </div>
+
+      <div className="dash-content fade-in">
+         {items.length === 0 ? (
+            <div className="empty-box">No public activity yet.</div>
+         ) : (
+             <>
+                {/* PUBLIC BUNDLES */}
+                {activeTab === 'WORKSPACES' && (
+                    <div className="workspace-grid-container">
+                        {items.map((w, i) => (
+                            <div key={`${w.id}-${i}`} className="ws-folder-card" onClick={() => router.push(`/workspace?id=${w.id}`)}>
+                                <div className="folder-mini-grid">
+                                    {w.previewImages && w.previewImages.slice(0,4).map((img:string, idx:number) => (
+                                        <img key={idx} src={img} className="mini-grid-img" onError={(e)=>e.currentTarget.style.display='none'} />
+                                    ))}
+                                    {(!w.previewImages || w.previewImages.length === 0) && <div className="empty-folder-icon">📁</div>}
+                                </div>
+                                <div className="folder-info-bottom">
+                                    <div className="folder-title-sm">{w.name}</div>
+                                    <div className="folder-count">{w.count || 0} items</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* PUBLIC HISTORY */}
+                {activeTab === 'HISTORY' && items.map((vote, i) => (
+                    <div key={`${vote.id}-${i}`} className="history-row">
+                        <div className="h-icon-col">
+                            <div className={`vote-badge ${vote.choice === 'YES' ? 'yes' : 'no'}`}>{vote.choice}</div>
+                            <div className="connector-line"></div>
+                        </div>
+                        <div className="h-content">
+                            <div className="h-title">{vote.markets?.title || 'Unknown Market'}</div>
+                            <div className="h-meta">
+                                <span>{new Date(vote.created_at).toLocaleDateString()}</span>
+                                <a href={`${BASESCAN_URL}/${vote.tx_hash}`} target="_blank" className="basescan-link">Verify ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+             </>
+         )}
       </div>
     </div>
   );
@@ -111,7 +260,7 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div className="loading">Loading Profile...</div>}>
+    <Suspense fallback={<div className="loading-wrapper">Loading Profile...</div>}>
       <ProfileContent />
     </Suspense>
   );
