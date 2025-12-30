@@ -70,25 +70,23 @@ body {
   padding-bottom: 120px; /* Extra padding for scrolling & FAB */
 }
 
-/* --- Sticky Header & Filters --- */
 .sticky-header-dark {
   position: sticky;
   top: 0;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(10px);
-  padding: 12px 0;
+  background: #000000; 
+  padding: 12px 20px; 
   z-index: 5;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid #222; 
 }
 
 .search-bar-dark {
   width: 100%;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: #000000; 
+  border: 1px solid #222;
   color: white;
   border-radius: 12px;
   padding: 12px 16px;
-  font-size: 16px; /* Prevents iPhone zoom */
+  font-size: 16px;
   margin-bottom: 12px;
   outline: none;
 }
@@ -103,23 +101,23 @@ body {
 .filter-row::-webkit-scrollbar { display: none; }
 
 .pill-select-dark {
-  background: #111827;
-  border: 1px solid #374151;
-  color: #d1d5db;
-  border-radius: 8px;
-  padding: 8px 12px;
+  background: #000000; 
+  border: 1px solid #222;
+  color: #fff;
+  border-radius: 20px; 
+  padding: 8px 16px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
 .date-group-dark {
   display: flex;
   flex-direction: column;
-  background: #1f2937;
-  padding: 4px 8px;
-  border-radius: 8px;
-  border: 1px solid #374151;
+  background: #000000;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid #222; 
   flex: 1;
 }
 
@@ -142,19 +140,20 @@ body {
   font-weight: 700;
 }
 
-/* --- Market Card (Dark Mode) --- */
 .market-card-dark {
   position: relative;
-  background: #111827;
-  border: 1px solid #1f2937;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-  transition: transform 0.1s;
+  background: #000; /* Pure Black */
+  border: none;
+  border-bottom: 1px solid #222; 
+  border-radius: 0; /* Remove radius for list view */
+  padding: 20px 0; /* Vertical breathing room */
+  margin-bottom: 0;
+  transition: background 0.2s;
 }
 
 .market-card-dark:active {
-  transform: scale(0.98);
+  background: #111;
+  transform: scale(1); /* Remove scale effect for list items */
 }
 
 .market-card-dark.selected {
@@ -197,11 +196,12 @@ body {
 }
 
 .market-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #1f2937;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px; /* Squircle (iOS App Icon style) */
+  background: #111; /* Was #1f2937 (Grey) */
   object-fit: cover;
+  border: 1px solid #222;
 }
 
 /* Kalshi Placeholder */
@@ -302,7 +302,7 @@ body {
 .load-more-dark {
   width: 100%;
   padding: 12px;
-  background: #1f2937;
+  background: #010203;
   border: 1px dashed #374151;
   border-radius: 12px;
   color: #9ca3af;
@@ -1733,7 +1733,7 @@ body {
 .ios-search-container {
   display: flex;
   align-items: center;
-  background-color: #1c1c1e; /* Standard iOS Dark Gray */
+  background-color: #010203; /* Standard iOS Dark Gray */
   border-radius: 10px;
   padding: 8px 12px;
   width: 100%;
