@@ -5,6 +5,7 @@ import { RootProvider } from "./rootProvider";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
+import UserSync from "@/components/UserSync";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const sourceCodePro = Source_Code_Pro({ variable: "--font-source-code-pro", subsets: ["latin"] });
@@ -80,12 +81,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${sourceCodePro.variable}`}>
         <RootProvider>
+<UserSync />
           <Header />
           <main style={{ paddingBottom: '100px', paddingTop: '0px', minHeight: '100vh' }}>
             {children}
           </main>
           <BottomNav />
         </RootProvider>
+       
       </body>
     </html>
   );

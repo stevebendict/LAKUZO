@@ -1,18 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { useAccount, useDisconnect } from 'wagmi';
 import { ConnectWallet } from '@coinbase/onchainkit/wallet';
 import { useRouter } from 'next/navigation';
 import debounce from 'lodash/debounce';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
-const BASESCAN_URL = "https://sepolia.basescan.org/tx"; 
+const BASESCAN_URL = "https://basescan.org/tx"; 
 const ITEMS_PER_PAGE = 10;
 
 export default function DashboardPage() {

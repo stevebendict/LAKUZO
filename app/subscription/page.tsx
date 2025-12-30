@@ -1,26 +1,43 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther } from 'viem';
 import { ConnectWallet } from '@coinbase/onchainkit/wallet';
+// Import the constants we created earlier
+import { LAKUZO_CONTRACT_ADDRESS, LAKUZO_ABI } from '@/utils/constants';
 
 export default function SubscriptionPage() {
-  const { address, isConnected } = useAccount();
-  const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('YEARLY');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { isConnected } = useAccount();
+  // Changed 'YEARLY' to 'ANNUAL' to match smart contract logic
+  const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'ANNUAL'>('ANNUAL');
 
-  // MOCK PAYMENT HANDLER
+  // Wagmi Write Hook
+  const { data: hash, writeContract, isPending } = useWriteContract();
+
+  // Wait for Transaction Receipt (Loading State)
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ 
+    hash 
+  });
+
   const handleSubscribe = async () => {
-    if (!isConnected) return alert("Please connect your wallet first.");
-    
-    setIsProcessing(true);
-    
-    // Simulation of USDT Approval + Transfer
-    setTimeout(() => {
-        const amount = billingCycle === 'MONTHLY' ? '20 USDT' : '200 USDT';
-        alert(`🚀 Payment Successful!\n\nYou subscribed to PRO (${amount}).\nWelcome to the elite circle.`);
-        setIsProcessing(false);
-    }, 2000);
+    if (!isConnected) return;
+
+    // 1. Set Exact ETH Price (Must match contract constants)
+    // Monthly: 0.006 ETH (~$20), Annual: 0.06 ETH (~$200)
+    const price = billingCycle === 'MONTHLY' ? '0.006' : '0.06';
+
+    try {
+      writeContract({
+        address: LAKUZO_CONTRACT_ADDRESS,
+        abi: LAKUZO_ABI,
+        functionName: billingCycle === 'MONTHLY' ? 'subscribeMonthly' : 'subscribeAnnually',
+        value: parseEther(price), 
+        chainId: 8453, // Force Base Mainnet
+      });
+    } catch (error) {
+      console.error("Payment failed:", error);
+    }
   };
 
   return (
@@ -45,8 +62,8 @@ export default function SubscriptionPage() {
               Monthly
             </button>
             <button 
-              className={`toggle-option ${billingCycle === 'YEARLY' ? 'active' : ''}`}
-              onClick={() => setBillingCycle('YEARLY')}
+              className={`toggle-option ${billingCycle === 'ANNUAL' ? 'active' : ''}`}
+              onClick={() => setBillingCycle('ANNUAL')}
             >
               Yearly <span className="save-tag">SAVE 17%</span>
             </button>
@@ -56,11 +73,14 @@ export default function SubscriptionPage() {
       {/* 3. PRICING CARD */}
       <div className="pro-price-card">
          <div className="price-stack">
-            <span className="currency">$</span>
-            <span className="amount">{billingCycle === 'MONTHLY' ? '20' : '200'}</span>
+            <span className="currency">Ξ</span>
+            {/* Show ETH price instead of Dollar */}
+            <span className="amount">{billingCycle === 'MONTHLY' ? '0.006' : '0.06'}</span>
             <span className="period">/{billingCycle === 'MONTHLY' ? 'mo' : 'yr'}</span>
          </div>
-         <div className="price-sub">Paid in USDT or USDC on Base</div>
+         <div className="price-sub">
+            {billingCycle === 'MONTHLY' ? '≈ $20.00 USD' : '≈ $200.00 USD'} on Base
+         </div>
       </div>
 
       {/* 4. FEATURE LIST (Value Stack) */}
@@ -94,9 +114,15 @@ export default function SubscriptionPage() {
 
       {/* 5. STICKY CTA */}
       <div className="sticky-pro-cta">
+        {isSuccess && (
+            <div className="p-4 mb-4 bg-green-900/30 border border-green-500 rounded-lg text-green-400 text-center text-sm font-bold animate-pulse">
+              🎉 Transaction Confirmed! Welcome to the elite circle.
+            </div>
+        )}
+
         {!isConnected ? (
           // VARIATION: Full-width Connect Button for Footer
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
               <ConnectWallet className="cb-wallet-custom" />
               <p className="cancel-text">Connect your wallet to proceed with payment</p>
           </div>
@@ -105,9 +131,14 @@ export default function SubscriptionPage() {
             <button 
               className="btn-pro-subscribe"
               onClick={handleSubscribe}
-              disabled={isProcessing}
+              disabled={isPending || isConfirming}
             >
-              {isProcessing ? 'Confirming Transaction...' : `Subscribe for $${billingCycle === 'MONTHLY' ? '20' : '200'}`}
+              {isPending 
+                ? 'Check Wallet...' 
+                : isConfirming 
+                  ? 'Confirming Transaction...' 
+                  : `Subscribe for ${billingCycle === 'MONTHLY' ? '0.006 ETH' : '0.06 ETH'}`
+              }
             </button>
             <p className="cancel-text">Cancel anytime. Secure on-chain payment.</p>
           </>

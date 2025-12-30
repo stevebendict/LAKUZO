@@ -2,16 +2,13 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { useAccount } from 'wagmi';
 import CompareChart from '@/components/CompareChart';
 import MarketVotingCard from '@/components/MarketVotingCard';
 import { getMarketUrl, getOrderBook } from '@/utils/marketUtils';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+
 
 function WorkspaceContent() {
   const searchParams = useSearchParams();

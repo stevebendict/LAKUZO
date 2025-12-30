@@ -2,16 +2,13 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
-const BASESCAN_URL = "https://sepolia.basescan.org/tx"; 
+
+const BASESCAN_URL = "https://basescan.org/tx"; 
 
 function ProfileContent() {
   const searchParams = useSearchParams();

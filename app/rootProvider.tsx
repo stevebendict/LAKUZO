@@ -1,25 +1,47 @@
 "use client";
-import { ReactNode } from "react";
-import { base } from "wagmi/chains";
+
+import { ReactNode, useState } from "react";
+// ✅ IMPORT baseSepolia
+import { base, baseSepolia } from "wagmi/chains";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { http, createConfig, WagmiProvider } from "wagmi";
+import { coinbaseWallet, injected } from "wagmi/connectors"; 
 import "@coinbase/onchainkit/styles.css";
 
+const config = createConfig({
+  // ✅ ADD baseSepolia HERE so the app can detect it
+  chains: [base, baseSepolia], 
+  connectors: [
+    coinbaseWallet({
+      appName: "Lakuzo",
+    }),
+    injected(), 
+  ],
+  transports: {
+    [base.id]: http(),
+    [baseSepolia.id]: http(), // Add transport for it too
+  },
+  ssr: true,
+});
+
 export function RootProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <OnchainKitProvider
-      apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
-      chain={base}
-      config={{
-        appearance: {
-          mode: "auto",
-        },
-        wallet: {
-          display: "modal",
-          preference: "all",
-        },
-      }}
-    >
-      {children}
-    </OnchainKitProvider>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <OnchainKitProvider
+          apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+          chain={base} // Keep default as Base
+          config={{
+            appearance: { mode: "auto" },
+            wallet: { display: "modal", preference: "all" },
+          }}
+        >
+          {children}
+        </OnchainKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

@@ -1,19 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import debounce from 'lodash/debounce';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 const ITEMS_PER_PAGE = 50;
 
-// --- BADGE UTILS (Export this to a util file later to use on Profile/Dashboard) ---
+// --- BADGE UTILS ---
 export const getRankBadge = (rank: number) => {
   if (rank === 1) return { label: '👑 GOAT', color: '#fbbf24', border: '2px solid #fbbf24' };
   if (rank === 2) return { label: '🥈 LEGEND', color: '#e5e7eb', border: '1px solid #e5e7eb' };
@@ -36,9 +31,8 @@ export default function LeaderboardPage() {
   
   // SEARCH STATE
   const [search, setSearch] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
 
-  // 1. INITIAL LOAD (My Follows + Top 50)
+  // 1. INITIAL LOAD
   useEffect(() => {
     fetchFollows();
     resetAndFetch(0, '');
@@ -50,22 +44,21 @@ export default function LeaderboardPage() {
     if (data) setFollowingIds(new Set(data.map(f => f.following_address)));
   }
 
-  // 2. FETCH LOGIC (Smart Rank Preservation)
+  // 2. FETCH LOGIC (Correctly uses your 'user_ranks' view)
   async function fetchUsers(pageIndex: number, isFresh: boolean, queryStr: string) {
     setLoading(true);
     const from = pageIndex * ITEMS_PER_PAGE;
     const to = from + ITEMS_PER_PAGE - 1;
 
-    // NOTE: We query 'user_ranks' view, NOT 'users' table directly
+    // We query the VIEW so 'global_rank' is always correct
     let query = supabase
       .from('user_ranks') 
       .select('*')
-      .order('global_rank', { ascending: true }) // Always order by rank
+      .order('global_rank', { ascending: true })
       .range(from, to);
 
-    // If searching, we filter ONLY by username/address, but global_rank is preserved by the View!
+    // Filter by name/address if searching
     if (queryStr) {
-      // Use "or" for searching both fields
       query = query.or(`username.ilike.%${queryStr}%,wallet_address.ilike.%${queryStr}%`);
     }
 
@@ -83,15 +76,14 @@ export default function LeaderboardPage() {
   const resetAndFetch = (pIdx: number, q: string) => {
     setPage(pIdx);
     setHasMore(true);
-    setUsers([]); // Clear list for fresh feel
+    setUsers([]); 
     fetchUsers(pIdx, true, q);
   };
 
-  // 3. DEBOUNCED SEARCH
+  // 3. SEARCH HANDLING
   const handleSearch = (e: any) => {
     const val = e.target.value;
     setSearch(val);
-    setIsSearching(!!val);
     debouncedSearch(val);
   };
 
@@ -106,20 +98,25 @@ export default function LeaderboardPage() {
     if (!address) return alert("Connect wallet to follow.");
     
     const isFollowing = followingIds.has(targetAddr);
-    // Optimistic Update
+    
+    // Optimistic Update (Instant UI change)
     const next = new Set(followingIds);
     if (isFollowing) next.delete(targetAddr);
     else next.add(targetAddr);
     setFollowingIds(next);
 
-    if (isFollowing) await supabase.from('follows').delete().eq('follower_address', address).eq('following_address', targetAddr);
-    else await supabase.from('follows').insert({ follower_address: address, following_address: targetAddr });
+    // Database Update
+    if (isFollowing) {
+        await supabase.from('follows').delete().eq('follower_address', address).eq('following_address', targetAddr);
+    } else {
+        await supabase.from('follows').insert({ follower_address: address, following_address: targetAddr });
+    }
   };
 
   return (
     <div className="mobile-container-dark" style={{ paddingBottom: '120px' }}>
       
-      {/* HEADER WITH INFO POPUP */}
+      {/* HEADER */}
       <div className="header-top-stacked">
          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
            <div>
@@ -127,7 +124,6 @@ export default function LeaderboardPage() {
              <span className="live-badge" style={{color:'#fbbf24'}}>🏆 SEASON 1</span>
            </div>
            
-           {/* INFO ICON FOR MATH */}
            <div className="info-tooltip-container">
               <span className="info-icon">ℹ</span>
               <div className="tooltip-content">
@@ -139,7 +135,7 @@ export default function LeaderboardPage() {
            </div>
          </div>
 
-         {/* SEARCH BAR (Preserves Rank) */}
+         {/* SEARCH BAR */}
          <div className="ios-search-container" style={{marginTop:'15px'}}>
              <span className="search-icon">🔍</span>
              <input 
@@ -152,7 +148,7 @@ export default function LeaderboardPage() {
       </div>
 
       <div className="ranking-list" style={{ marginTop: '20px' }}>
-         {/* HEADER ROW */}
+         {/* TABLE HEADER */}
          <div className="rank-row header">
             <div className="rank-num">#</div>
             <div className="rank-user">Trader</div>
@@ -163,35 +159,32 @@ export default function LeaderboardPage() {
              <div className="empty-search">No traders found.</div>
          ) : (
              users.map((user) => {
-               const rank = user.global_rank; // From SQL View
+               const rank = user.global_rank; // Comes from SQL View
                const badge = getRankBadge(rank);
                const isMe = address && user.wallet_address.toLowerCase() === address.toLowerCase();
                const isFollowing = followingIds.has(user.wallet_address);
-               const displayId = user.username ? `@${user.username}` : `${user.wallet_address.slice(0,6)}...`;
+               const displayId = user.username ? `@${user.username}` : `${user.wallet_address.substring(0,6)}...`;
 
                return (
                  <Link href={`/profile?address=${user.wallet_address}`} key={user.wallet_address} className="rank-link-wrapper">
                    <div className={`rank-row ${rank <= 3 ? 'top-tier-glow' : ''}`}>
                       
-                      {/* 1. RANK & BADGE */}
+                      {/* RANK */}
                       <div className="rank-num">
                          <div style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
                             <span style={{fontSize:'14px', fontWeight:'700'}}>{rank}</span>
-                            {/* Tiny Rank Icon for Top 3 */}
                             {rank === 1 && '👑'}
                             {rank === 2 && '🥈'}
                             {rank === 3 && '🥉'}
                          </div>
                       </div>
 
-                      {/* 2. USER DETAILS */}
+                      {/* USER INFO */}
                       <div className="rank-user">
                          <div className="user-details-clean">
                             <span className={`addr ${user.username ? 'named' : 'anon'}`}>
                                {displayId}
                             </span>
-                            
-                            {/* DYNAMIC BADGE */}
                             <span 
                               className="rank-badge-pill" 
                               style={{ 
@@ -205,7 +198,7 @@ export default function LeaderboardPage() {
                          </div>
                       </div>
 
-                      {/* 3. REP & ACTION */}
+                      {/* SCORE & FOLLOW */}
                       <div className="rank-score-col">
                           <span className="score-val">{user.reputation_score}</span>
                           {!isMe && (
@@ -217,7 +210,6 @@ export default function LeaderboardPage() {
                              </button>
                           )}
                       </div>
-
                    </div>
                  </Link>
                );
