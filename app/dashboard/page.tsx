@@ -255,7 +255,22 @@ export default function DashboardPage() {
 
   const handleLogout = () => { disconnect(); router.push('/'); };
 
-  if (!isConnected) return <div className="container center-msg"><ConnectWallet /></div>;
+  if (!isConnected) {
+    return (
+      <div className="wallet-gate-overlay" style={{ position: 'fixed', zIndex: 10 }}>
+        <div className="wallet-gate-card">
+          <div className="gate-icon">📊</div>
+          <div>
+            <h3 className="gate-title">Unlock Your Dashboard</h3>
+            <p className="gate-desc">
+              Connect to track your portfolio, view history, and analyze your performance.
+            </p>
+          </div>
+          <ConnectWallet className="cb-wallet-custom" />
+        </div>
+      </div>
+    );
+  }
 
   // --- RENDERERS ---
 

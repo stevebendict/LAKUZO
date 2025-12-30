@@ -267,10 +267,27 @@ function MarketContent() {
       </div>
 
       {!isConnected && (
-         <div className="modal-overlay" style={{ alignItems: 'flex-end', paddingBottom: '30px' }}>
-            <ConnectWallet className="cb-wallet-custom" />
-         </div>
-      )}
+  <div className="wallet-gate-overlay">
+    <div className="wallet-gate-card">
+      <div className="gate-icon">🔐</div>
+      
+      <div>
+        <h3 className="gate-title">Unlock Market Data</h3>
+        <p className="gate-desc">
+          Connect your wallet to analyze live odds, spot arbitrage, and track your reputation.
+        </p>
+      </div>
+
+      {/* The Button */}
+      <ConnectWallet className="cb-wallet-custom" />
+      
+      {/* Optional: Trust Badge */}
+      <span style={{ fontSize: '10px', color: '#555', marginTop: '8px' }}>
+        Powered by Base & Coinbase
+      </span>
+    </div>
+  </div>
+)}
     </div>
   );
 }

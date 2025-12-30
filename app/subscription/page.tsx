@@ -95,10 +95,13 @@ export default function SubscriptionPage() {
       {/* 5. STICKY CTA */}
       <div className="sticky-pro-cta">
         {!isConnected ? (
-            <div className="connect-wrapper-full">
-                <ConnectWallet className="cb-wallet-custom" />
-            </div>
+          // VARIATION: Full-width Connect Button for Footer
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <ConnectWallet className="cb-wallet-custom" />
+              <p className="cancel-text">Connect your wallet to proceed with payment</p>
+          </div>
         ) : (
+          <>
             <button 
               className="btn-pro-subscribe"
               onClick={handleSubscribe}
@@ -106,15 +109,16 @@ export default function SubscriptionPage() {
             >
               {isProcessing ? 'Confirming Transaction...' : `Subscribe for $${billingCycle === 'MONTHLY' ? '20' : '200'}`}
             </button>
+            <p className="cancel-text">Cancel anytime. Secure on-chain payment.</p>
+          </>
         )}
-        <p className="cancel-text">Cancel anytime. Secure on-chain payment.</p>
       </div>
 
     </div>
   );
 }
 
-// Sub-component for clean code
+// --- HELPER COMPONENT (Outside the main function) ---
 function FeatureItem({ icon, title, desc }: { icon: string, title: string, desc: string }) {
     return (
         <div className="feature-row">
@@ -124,5 +128,5 @@ function FeatureItem({ icon, title, desc }: { icon: string, title: string, desc:
                 <p>{desc}</p>
             </div>
         </div>
-    )
+    );
 }
