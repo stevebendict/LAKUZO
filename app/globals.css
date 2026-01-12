@@ -2307,3 +2307,233 @@ body {
   background: #333 !important; /* Matches dark theme better than bright blue in footer */
   border: 1px solid #555;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- 1. DARK MODE BASE --- */
+:root {
+  --bg-dark: #0a0a0a;
+  --card-dark: #111111;
+  --border-dark: #222222;
+  --text-primary: #ffffff;
+  --text-secondary: #888888;
+  --accent-blue: #3b82f6;
+  --accent-green: #22c55e;
+  --nav-height: 60px;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  /* Prevent bounce on mobile */
+  overscroll-behavior-y: none; 
+}
+
+/* --- 2. MOBILE CONTAINER --- */
+.mobile-container-dark {
+  min-height: 100vh;
+  background-color: var(--bg-dark);
+  padding-bottom: 80px; /* Space for Bottom Nav */
+  max-width: 480px; /* Force Mobile View on Desktop */
+  margin: 0 auto;
+  border-left: 1px solid var(--border-dark);
+  border-right: 1px solid var(--border-dark);
+}
+
+/* --- 3. STICKY HEADER --- */
+.sticky-header-dark {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: rgba(10, 10, 10, 0.85); /* Semi-transparent */
+  backdrop-filter: blur(12px); /* Blur effect */
+  border-bottom: 1px solid var(--border-dark);
+  padding: 12px 16px;
+}
+
+.search-bar-dark {
+  width: 100%;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.search-bar-dark:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px; /* Hide scrollbar spacing */
+}
+
+/* Hide scrollbar */
+.filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.pill-select-dark {
+  appearance: none;
+  background-color: #1a1a1a;
+  color: #ccc;
+  border: 1px solid #333;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* --- 4. BOTTOM NAVIGATION (Fixed) --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px; /* Taller for floating button */
+  background-color: rgba(10, 10, 10, 0.95);
+  border-top: 1px solid var(--border-dark);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom); /* iOS safe area */
+  backdrop-filter: blur(10px);
+  max-width: 480px; /* Match mobile container */
+  margin: 0 auto;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 10px;
+  text-decoration: none;
+  transition: color 0.2s;
+  width: 60px;
+}
+
+.nav-item.active {
+  color: var(--accent-blue);
+}
+
+.nav-item svg {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 2px;
+}
+
+/* --- 5. IMPULSIVE PAIR CARDS --- */
+.market-feed {
+  padding: 16px;
+}
+
+.spacer-bottom {
+  height: 80px; /* Ensure last card isn't hidden by nav */
+}
+
+.loading-spinner-dark {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 40px;
+}
+
+/* The Glowing Gold/Green Style for Arb */
+.arb-glow-gold {
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.15);
+}
+
+/* Animations */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse {
+  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* =========================================
+   11. PAIR CARD SPECIFIC (Pure CSS)
+   ========================================= */
+
+.pair-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #1a1a1a; /* Darker inner row */
+  border-radius: 8px;
+  margin-bottom: 6px;
+  border: 1px solid #333;
+}
+
+.pair-row.profitable {
+  background: rgba(34, 197, 94, 0.1); /* Subtle Green Tint */
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.pair-label {
+  font-size: 11px;
+  color: #888;
+  font-family: monospace;
+  text-transform: uppercase;
+}
+
+.pair-data {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.pair-cost {
+  color: #ccc;
+}
+
+.pair-yield {
+  color: var(--accent-green); /* #22c55e */
+  font-weight: 800;
+  animation: pulse 2s infinite;
+}
+
+.pair-match-badge {
+  font-size: 10px;
+  color: #666;
+  border: 1px solid #333;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 4px;
+  margin-right: 6px;
+}
+
+.inverse-tag {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.click-hint {
+  text-align: center;
+  font-size: 10px;
+  color: var(--accent-blue);
+  margin-top: 10px;
+  font-weight: 600;
+  opacity: 0.8;
+}
