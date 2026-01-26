@@ -1,32 +1,32 @@
 # 🦁 LAKUZO: The Intelligence Layer for Prediction Markets
 
-The World's 1st Mobile Prediction Market Aggregator.
+**The World's 1st Mobile Prediction Market Aggregator.**
 *Basically CoinMarketCap + 1% TradingView for Prediction Markets.*
 
 ---
 
 ## 📉 The Problem: Prediction Markets are Predictable... The Tooling Isn't.
 
-As of late 2025, prediction market volume has surpassed $4 Billion weekly. Platforms like Polymarket, Kalshi, and Opinion Labs have found product-market fit.
+As of late 2025, prediction market volume has surpassed **$4 Billion weekly**. Platforms like Polymarket, Kalshi, and Opinion Labs have found product-market fit.
 
-But the user experience is stuck in 2013.
+**But the user experience is stuck in 2013.**
 Currently, a trader tracking a major event (like the US Election) has to navigate a fragmented landscape:
-* Polymarket for global liquidity.
-* Kalshi for US-regulated contracts.
-* X (Twitter) for real-time news.
-* Dune Analytics for volume data.
-* Spreadsheets to manually calculate arbitrage.
+* **Polymarket** for global liquidity.
+* **Kalshi** for US-regulated contracts.
+* **X (Twitter)** for real-time news.
+* **Dune Analytics** for volume data.
+* **Spreadsheets** to manually calculate arbitrage.
 
-Lakuzo is the missing link. We are the single terminal where you can see the truth across all chains and platforms in one view.
+**Lakuzo is the missing link.** We are the single terminal where you can see the truth across all chains and platforms in one view.
 
 ---
 
 ## 🎯 Who is Lakuzo For?
 
 We are not building for the casual gambler. Lakuzo is professional tooling for:
-* ⚡ Arbitrageurs: Traders who need to spot sub-second price discrepancies between Polymarket and Kalshi.
-* 🔍 Market Researchers: Analysts who need aggregated liquidity and volume data across chain-agnostic sources.
-* 📈 Semi-Pros: High-volume users who have outgrown the basic "Buy Yes/No" interface and need sophisticated charting.
+* **⚡ Arbitrageurs:** Traders who need to spot sub-second price discrepancies between Polymarket and Kalshi.
+* **🔍 Market Researchers:** Analysts who need aggregated liquidity and volume data across chain-agnostic sources.
+* **📈 Semi-Pros:** High-volume users who have outgrown the basic "Buy Yes/No" interface and need sophisticated charting.
 
 ---
 
@@ -38,9 +38,9 @@ We are not a new betting market; we are the intelligence layer that sits on top 
 We normalize odds from disparate sources (currently Polymarket & Kalshi) into one standard, real-time feed, allowing for instant cross-platform comparison.
 
 ### 2. "Internal" Arbitrage Discovery
-In an efficient market, the price of Yes + No should always equal $1.00. However, due to liquidity crunches, these markets frequently break.
-* The Opportunity: We often see markets where Yes ($0.55) + No ($0.40) = $0.95. This is a risk-free 5% yield.
-* The Solution: Lakuzo’s engine scans for these specific inefficiencies and highlights them instantly.
+In an efficient market, the price of `Yes` + `No` should always equal **$1.00**. However, due to liquidity crunches, these markets frequently break.
+* **The Opportunity:** We often see markets where Yes ($0.55) + No ($0.40) = **$0.95**. This is a risk-free 5% yield.
+* **The Solution:** Lakuzo’s engine scans for these specific inefficiencies and highlights them instantly.
 
 ### 3. The Bundle Workspace
 We built the tool that makes manual discovery possible. Users can search for "Bitcoin" and drag charts from both Polymarket and Kalshi into a single "Bundle," creating a custom dashboard to monitor price divergence in real-time.
@@ -52,17 +52,17 @@ We built the tool that makes manual discovery possible. Users can search for "Bi
 Existing tools track "Smart Money" by looking at wallet volume. But if a whale spams 300 orders on a 99% odds market, legacy tools count that as "300 Smart Signals." It bloats the data.
 
 ### The Solution: The "One Person, One Vote" Reputation Protocol
-> "We measure forecasting skill, not wallet size."
+> **"We measure forecasting skill, not wallet size."**
 
-We introduced a reputation layer entirely on Base.
-* Anti-Whale: You can only vote once per market. Whether you have $10 or $10 Million, your vote counts as one signal.
-* Scoring: +10 Rep for correct predictions, -10 Rep for incorrect ones. This filters out noise and highlights true forecasters.
+We introduced a reputation layer entirely on **Base**.
+* **Anti-Whale:** You can only vote once per market. Whether you have $10 or $10 Million, your vote counts as one signal.
+* **Scoring:** +10 Rep for correct predictions, -10 Rep for incorrect ones. This filters out noise and highlights true forecasters.
 
 ---
 
 ## 🏗️ System Architecture
 
-Lakuzo uses a Hybrid Scraper architecture to balance real-time freshness with API rate limits, anchored by Base for the reputation protocol.
+Lakuzo uses a **Hybrid Scraper** architecture to balance real-time freshness with API rate limits, anchored by Base for the reputation protocol.
 
 ```mermaid
 graph TD
@@ -84,7 +84,8 @@ graph TD
         E -->|Fuzzy Match| G[Arbitrage/Pairing Engine]:::db
         G -->|Yield Calc| H[Live Spreads View]:::db
     end
-subgraph "Application Layer"
+
+    subgraph "Application Layer"
         F -->|Fetch| I[Lakuzo Dashboard]:::ui
         H -->|Alerts| I
     end
@@ -94,11 +95,6 @@ subgraph "Application Layer"
         J -->|Mint XP| K[Soulbound Tokens]:::base
         K -->|Verify| I
     end
-
-    %% LINK STYLING
-    linkStyle default stroke-width:2px,fill:none,stroke:#666;
-`
-
 ---
 
 ## 🔮 Phase 2: Turning Gas into Gold
