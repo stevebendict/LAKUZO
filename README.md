@@ -95,6 +95,8 @@ graph TD
         J -->|Mint XP| K[Soulbound Tokens]:::base
         K -->|Verify| I
     end
+```
+
 ---
 
 ## 🔮 Phase 2: Turning Gas into Gold
@@ -102,9 +104,9 @@ graph TD
 Phase 2 shifts Lakuzo from a passive "Viewer" to an active "Protocol."
 
 ### 1. The Incentive Model
-* The Cost: Voting requires a transaction on Base (~$0.0003).
-* The Pivot: We turn this "spam tax" into yield. 100% of protocol fees go into a Seasonal Prize Pool.
-* The Reward: At the end of the season, the pot is airdropped to the Top 10 users on the Leaderboard. Bots funding the smartest users.
+* **The Cost:** Voting requires a transaction on **Base** (~$0.0003).
+* **The Pivot:** We turn this "spam tax" into yield. 100% of protocol fees go into a **Seasonal Prize Pool**.
+* **The Reward:** At the end of the season, the pot is airdropped to the Top 10 users on the Leaderboard. Bots funding the smartest users.
 
 ### 2. The "Pro" Terminal
 Integrating a TradingView-style engine that allows users to draw trendlines, RSI, and MACD directly on probability charts.
@@ -115,11 +117,11 @@ Integrating a TradingView-style engine that allows users to draw trendlines, RSI
 
 ### 1. The "Zombie Market" Problem
 Importing every market made the platform look like a junkyard.
-* The Fix: We built strict liquidity filters ($5k+ Volume on Poly, 10k+ Contracts on Kalshi) to ensure users only see tradeable markets.
+* **The Fix:** We built strict liquidity filters ($5k+ Volume on Poly, 10k+ Contracts on Kalshi) to ensure users only see tradeable markets.
 
 ### 2. API Limits vs. Real-Time Needs
 You can't arbitrage old data.
-* The Fix: A Hybrid Scraper.
+* **The Fix:** A **Hybrid Scraper**.
     * *Background:* Safe, steady scraping every 5 minutes.
     * *Foreground:* Atomic Live Refresh triggered instantly when a user views a specific market.
 
@@ -128,6 +130,6 @@ You can't arbitrage old data.
 ## 🌐 Future Ecosystem
 
 By normalizing this fragmented data, Lakuzo becomes an oracle for the Base ecosystem. Developers can build on our Reputation Layer to:
-* Create "Copy-Trade" vaults based on top-ranked forecasters.
-* Mint dynamic NFTs that evolve based on forecasting accuracy.
-* Feed "Crowd Wisdom" data into DeFi protocols for risk modeling.
+* Create **"Copy-Trade" vaults** based on top-ranked forecasters.
+* Mint **dynamic NFTs** that evolve based on forecasting accuracy.
+* Feed **"Crowd Wisdom" data** into DeFi protocols for risk modeling.
