@@ -1,4 +1,9 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjI0OTQyODksInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgyYjJkZDAxZTQ1RjY0ZTIwMENiODk4Y0VhOEU5NzBkRWExODljMGJDIn0",
+    "payload": "eyJkb21haW4iOiJsYWt1em8uY29tIn0",
+    "signature": "ZlPGAKfZ7SkykByZ6bBRvlfZN4vvX+KLWHtz423Ek4VKGqm5IXcWnTjzdMU19/iIaiMIeS24Sah0RphbNes0Hxs="
+  },
   "frame": {
     "version": "1",
     "name": "Lakuzo",
