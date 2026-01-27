@@ -13,6 +13,27 @@
     "buttonTitle": "Launch Lakuzo",
     "splashImageUrl": "https://lakuzo.com/splash.png",
     "splashBackgroundColor": "#000000",
-    "webhookUrl": "https://lakuzo.com/api/frame-webhook"
+    "webhookUrl": "https://lakuzo.com/api/frame-webhook",
+    
+    "//": "NEW FIELDS BELOW",
+    "subtitle": "Prediction Market Aggregator",
+    "description": "Compare odds across Polymarket and Kalshi. Find arbitrage opportunities instantly and track market sentiment on Base.",
+    "tagline": "Trade Every Market. One App.",
+    "primaryCategory": "finance", 
+    "tags": [
+      "finance",
+      "prediction",
+      "arbitrage",
+      "crypto",
+      "trading"
+    ],
+    "heroImageUrl": "https://lakuzo.com/hero.png",
+    "screenshotUrls": [
+      "https://lakuzo.com/screen1.png",
+      "https://lakuzo.com/screen2.png"
+    ],
+    "ogTitle": "Lakuzo | The Prediction Terminal",
+    "ogDescription": "Real-time arbitrage scanner for Polymarket & Kalshi. Don't just bet—win.",
+    "ogImageUrl": "https://lakuzo.com/og-image.png"
   }
 }
