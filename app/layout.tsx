@@ -63,6 +63,24 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png", 
   },
+
+  // ✅ 6. Farcaster Frame v2 (Mini App) Metadata
+  other: {
+    "fc:frame": JSON.stringify({
+      version: "next",
+      imageUrl: `${baseUrl}/og-image.png`, 
+      button: {
+        title: "Launch Lakuzo",
+        action: {
+          type: "launch_frame",
+          name: "Lakuzo",
+          url: baseUrl,
+          splashImageUrl: `${baseUrl}/icon.png`,
+          splashBackgroundColor: "#000000"
+        }
+      }
+    })
+  }
 };
 
 export const viewport: Viewport = {
@@ -81,14 +99,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${sourceCodePro.variable}`}>
         <RootProvider>
-<UserSync />
+          <UserSync />
           <Header />
           <main style={{ paddingBottom: '100px', paddingTop: '0px', minHeight: '100vh' }}>
             {children}
           </main>
           <BottomNav />
         </RootProvider>
-       
       </body>
     </html>
   );

@@ -1,0 +1,13 @@
+{
+  "frame": {
+    "version": "1",
+    "name": "Lakuzo",
+    "iconUrl": "https://lakuzo.com/icon.png",
+    "homeUrl": "https://lakuzo.com",
+    "imageUrl": "https://lakuzo.com/og-image.png",
+    "buttonTitle": "Launch Lakuzo",
+    "splashImageUrl": "https://lakuzo.com/splash.png",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://lakuzo.com/api/frame-webhook"
+  }
+}
