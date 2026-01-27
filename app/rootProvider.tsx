@@ -1,11 +1,12 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { base, baseSepolia } from "wagmi/chains";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, createConfig, WagmiProvider } from "wagmi";
 import { coinbaseWallet, injected } from "wagmi/connectors"; 
+import sdk from "@farcaster/frame-sdk"; 
 import "@coinbase/onchainkit/styles.css";
 
 const config = createConfig({
@@ -25,6 +26,16 @@ const config = createConfig({
 
 export function RootProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
+
+  useEffect(() => {
+    const load = async () => {
+      await sdk.actions.ready();
+    };
+    
+    if (sdk && typeof window !== "undefined") {
+      load();
+    }
+  }, []);
 
   return (
     <WagmiProvider config={config}>
