@@ -18,7 +18,7 @@ const config = createConfig({
   ],
   transports: {
     [base.id]: http(),
-    [baseSepolia.id]: http(), // Add transport for it too
+    [baseSepolia.id]: http(),
   },
   ssr: true,
 });
@@ -31,18 +31,18 @@ export function RootProvider({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <OnchainKitProvider
           apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
-          chain={base} // Keep default as Base
+          chain={base}
           config={{
             appearance: { 
-              mode: "dark",      // Forced Dark mode for consistent mini-app feel
-              theme: "midnight", // 'midnight' matches Farcaster/Base dark theme
+              mode: "dark",
+              theme: "midnight",
             },
             wallet: { 
               display: "modal", 
               preference: "all" 
             },
           }}
-        
+        >
           {children}
         </OnchainKitProvider>
       </QueryClientProvider>

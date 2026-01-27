@@ -1,7 +1,7 @@
 # 🦁 LAKUZO: The Intelligence Layer for Prediction Markets
 
 **The World's 1st Mobile Prediction Market Aggregator.**
-*Basically CoinMarketCap + TradingView for Prediction Markets.*
+*Basically CoinMarketCap + TradingView for Prediction Markets!*
 
 ---
 
