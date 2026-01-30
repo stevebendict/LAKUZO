@@ -15,30 +15,19 @@ export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const router = useRouter();
-  
-  // --- UI STATE ---
   const [viewMode, setViewMode] = useState<'MAIN' | 'FOLLOWING_LIST' | 'FOLLOWERS_LIST' | 'EDIT_PROFILE'>('MAIN');
   const [activeTab, setActiveTab] = useState<'HISTORY' | 'MARKETS' | 'WORKSPACES'>('HISTORY');
-  
-  // --- DATA STATE ---
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ followers: 0, following: 0, reputation: 100, totalVotes: 0 }); 
   const [items, setItems] = useState<any[]>([]); 
   const [loading, setLoading] = useState(false);
-  
-  // --- MENU STATE ---
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-  // --- PAGINATION & SEARCH ---
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState('');
-  
-  // --- EDIT FORM ---
   const [editName, setEditName] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // 1. INITIAL LOAD
   useEffect(() => {
     if (address) {
       loadProfileHeader();
@@ -49,11 +38,9 @@ export default function DashboardPage() {
     return () => window.removeEventListener('click', closeMenu);
   }, [address]);
 
-  // 2. TAB/VIEW CHANGE
   useEffect(() => {
     setOpenMenuId(null); 
     resetAndFetch(0, search);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, viewMode]);
 
   const resetAndFetch = (pageIdx: number, q: string) => {
@@ -84,7 +71,6 @@ export default function DashboardPage() {
     const { count: followers } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_address', address);
     const { count: following } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_address', address);
     
-    // Get real vote count if available, or 0
     setStats({ 
        followers: followers || 0, 
        following: following || 0, 
@@ -102,7 +88,6 @@ export default function DashboardPage() {
     let data: any[] = [];
 
     try {
-      // --- A. FOLLOW LISTS ---
       if (viewMode === 'FOLLOWING_LIST') {
          const { data: raw } = await supabase.from('follows').select('following_address').eq('follower_address', address).range(from, to);
          if (raw?.length) {
@@ -124,7 +109,6 @@ export default function DashboardPage() {
          }
       }
 
-      // --- B. HISTORY ---
       else if (activeTab === 'HISTORY') {
          let query = supabase.from('votes').select('*, markets!inner(title, image_url)').eq('wallet_address', address).order('created_at', { ascending: false }).range(from, to);
          if (searchQuery) query = query.ilike('markets.title', `%${searchQuery}%`);
@@ -132,7 +116,6 @@ export default function DashboardPage() {
          data = res || [];
       }
       
-      // --- C. MARKETS (Single Watchlist) ---
       else if (activeTab === 'MARKETS') {
          const { data: items } = await supabase.from('watchlist_items').select('market_id, watchlists!inner(user_wallet)').eq('watchlists.user_wallet', address).range(from, to);
          if (items?.length) {
@@ -144,7 +127,6 @@ export default function DashboardPage() {
          }
       }
 
-      // --- D. WORKSPACES (With Creator Info) ---
       else if (activeTab === 'WORKSPACES') {
          let query = supabase
            .from('watchlists')
@@ -194,8 +176,6 @@ export default function DashboardPage() {
     fetchTabItems(next, false, search);
   };
 
-  // --- ACTIONS ---
-
   const toggleMenu = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     e.preventDefault();
@@ -224,9 +204,7 @@ export default function DashboardPage() {
     setItems(prev => prev.filter(w => w.id !== bundleId));
   };
 
-  // 1. SMART SHARE (Generates Public Profile Link)
   const handleShareProfile = () => {
-    // Generates: https://domain.com/profile?address=0x123...
     const url = `${window.location.origin}/profile?address=${address}`;
     navigator.clipboard.writeText(url);
     alert("🔗 Profile Link Copied!");
@@ -268,8 +246,6 @@ export default function DashboardPage() {
     );
   }
 
-  // --- RENDERERS ---
-
   if (viewMode === 'EDIT_PROFILE') return (
       <div className="mobile-container-dark">
          <div className="sticky-header-dark" style={{ display:'flex', alignItems:'center', gap:'10px' }}>
@@ -301,7 +277,6 @@ export default function DashboardPage() {
                <div 
                  key={`${u.wallet_address}-${i}`} 
                  className="person-card"
-                 // 2. NAVIGATE TO PUBLIC PROFILE
                  onClick={() => router.push(`/profile?address=${u.wallet_address}`)}
                >
                   <div style={{display:'flex', alignItems:'center', gap:'10px', flex:1}}>
@@ -391,7 +366,6 @@ export default function DashboardPage() {
 
                 {activeTab === 'WORKSPACES' && (
                     <div className="workspace-grid-container">
-                        {/* 3. NEW BUNDLE -> REDIRECT TO HOME */}
                         <div className="ws-folder-card create-new" onClick={() => router.push('/')}>
                             <div className="plus-icon-circle">+</div>
                             <span className="create-text">New Bundle</span>

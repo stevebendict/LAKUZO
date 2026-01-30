@@ -15,18 +15,16 @@ interface MarketChartProps {
 
 export default function MarketChart({ history, currentPrice, isResolved }: MarketChartProps) {
   const [chartData, setChartData] = useState<any[]>([]);
-  const [view, setView] = useState('ALL'); // Internal State for Zoom
+  const [view, setView] = useState('ALL');
   const [color, setColor] = useState('#22c55e');
 
   useEffect(() => {
-    // 1. Determine Color (Green if UP, Red if DOWN)
     const startPrice = history?.length > 0 ? history[0].p : currentPrice;
     const isPositive = currentPrice >= startPrice;
     setColor(isResolved ? '#888' : (isPositive ? '#22c55e' : '#ef4444'));
 
     if (!history) return;
-
-    // 2. Format Data
+    
     let formatted = history.map(point => ({
       time: new Date(point.t).getTime(),
       displayDate: new Date(point.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
@@ -34,7 +32,6 @@ export default function MarketChart({ history, currentPrice, isResolved }: Marke
       price: point.p
     }));
 
-    // 3. Filter Data based on "View" (Client-Side Zoom)
     const now = new Date().getTime();
     if (view !== 'ALL') {
       let cutoff = 0;
@@ -47,8 +44,6 @@ export default function MarketChart({ history, currentPrice, isResolved }: Marke
       formatted = formatted.filter(pt => pt.time >= cutoff);
     }
 
-    // 4. Add Live Point (Connect line to current price)
-    // We append this AFTER filtering so the line always ends at "Now"
     formatted.push({
       time: now,
       displayDate: isResolved ? 'Final' : 'Live',
@@ -76,7 +71,6 @@ export default function MarketChart({ history, currentPrice, isResolved }: Marke
   return (
     <div style={{ width: '100%', userSelect: 'none' }}>
       
-      {/* HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px', padding: '0 4px' }}>
         <div>
           <div style={{ fontSize: '32px', fontWeight: '900', color: color, lineHeight: '1' }}>
@@ -87,7 +81,6 @@ export default function MarketChart({ history, currentPrice, isResolved }: Marke
           </div>
         </div>
 
-        {/* TIME TOGGLES (Client Side) */}
         <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '8px' }}>
           {(['1H', '6H', '1D', '1W', '1M', 'ALL'] as const).map((r) => (
             <button
@@ -112,7 +105,7 @@ export default function MarketChart({ history, currentPrice, isResolved }: Marke
         </div>
       </div>
 
-      {/* CHART */}
+      {/* bagian chart */}
       <div style={{ width: '100%', height: '240px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData}>
@@ -146,7 +139,7 @@ export default function MarketChart({ history, currentPrice, isResolved }: Marke
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#444', strokeWidth: 1 }} />
             
             <Area 
-              type="linear" // Linear = Smooth Polymarket look
+              type="linear" 
               dataKey="price" 
               stroke={color} 
               strokeWidth={2} 

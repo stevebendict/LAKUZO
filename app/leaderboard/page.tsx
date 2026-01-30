@@ -8,7 +8,6 @@ import debounce from 'lodash/debounce';
 
 const ITEMS_PER_PAGE = 50;
 
-// --- BADGE UTILS ---
 export const getRankBadge = (rank: number) => {
   if (rank === 1) return { label: '👑 GOAT', color: '#fbbf24', border: '2px solid #fbbf24' };
   if (rank === 2) return { label: '🥈 LEGEND', color: '#e5e7eb', border: '1px solid #e5e7eb' };
@@ -21,18 +20,13 @@ export const getRankBadge = (rank: number) => {
 
 export default function LeaderboardPage() {
   const { address } = useAccount();
-  
-  // DATA STATE
   const [users, setUsers] = useState<any[]>([]);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  
-  // SEARCH STATE
   const [search, setSearch] = useState('');
 
-  // 1. INITIAL LOAD
   useEffect(() => {
     fetchFollows();
     resetAndFetch(0, '');
@@ -44,20 +38,17 @@ export default function LeaderboardPage() {
     if (data) setFollowingIds(new Set(data.map(f => f.following_address)));
   }
 
-  // 2. FETCH LOGIC (Correctly uses your 'user_ranks' view)
   async function fetchUsers(pageIndex: number, isFresh: boolean, queryStr: string) {
     setLoading(true);
     const from = pageIndex * ITEMS_PER_PAGE;
     const to = from + ITEMS_PER_PAGE - 1;
 
-    // We query the VIEW so 'global_rank' is always correct
     let query = supabase
       .from('user_ranks') 
       .select('*')
       .order('global_rank', { ascending: true })
       .range(from, to);
 
-    // Filter by name/address if searching
     if (queryStr) {
       query = query.or(`username.ilike.%${queryStr}%,wallet_address.ilike.%${queryStr}%`);
     }
@@ -80,7 +71,6 @@ export default function LeaderboardPage() {
     fetchUsers(pIdx, true, q);
   };
 
-  // 3. SEARCH HANDLING
   const handleSearch = (e: any) => {
     const val = e.target.value;
     setSearch(val);
@@ -92,20 +82,17 @@ export default function LeaderboardPage() {
     []
   );
 
-  // 4. ACTIONS
   const handleFollow = async (e: React.MouseEvent, targetAddr: string) => {
     e.preventDefault();
     if (!address) return alert("Connect wallet to follow.");
     
     const isFollowing = followingIds.has(targetAddr);
     
-    // Optimistic Update (Instant UI change)
     const next = new Set(followingIds);
     if (isFollowing) next.delete(targetAddr);
     else next.add(targetAddr);
     setFollowingIds(next);
 
-    // Database Update
     if (isFollowing) {
         await supabase.from('follows').delete().eq('follower_address', address).eq('following_address', targetAddr);
     } else {
@@ -116,7 +103,6 @@ export default function LeaderboardPage() {
   return (
     <div className="mobile-container-dark" style={{ paddingBottom: '120px' }}>
       
-      {/* HEADER */}
       <div className="header-top-stacked">
          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
            <div>
@@ -135,7 +121,6 @@ export default function LeaderboardPage() {
            </div>
          </div>
 
-         {/* SEARCH BAR */}
          <div className="ios-search-container" style={{marginTop:'15px'}}>
              <span className="search-icon">🔍</span>
              <input 
@@ -148,7 +133,6 @@ export default function LeaderboardPage() {
       </div>
 
       <div className="ranking-list" style={{ marginTop: '20px' }}>
-         {/* TABLE HEADER */}
          <div className="rank-row header">
             <div className="rank-num">#</div>
             <div className="rank-user">Trader</div>
@@ -159,7 +143,7 @@ export default function LeaderboardPage() {
              <div className="empty-search">No traders found.</div>
          ) : (
              users.map((user) => {
-               const rank = user.global_rank; // Comes from SQL View
+               const rank = user.global_rank; 
                const badge = getRankBadge(rank);
                const isMe = address && user.wallet_address.toLowerCase() === address.toLowerCase();
                const isFollowing = followingIds.has(user.wallet_address);
@@ -168,8 +152,7 @@ export default function LeaderboardPage() {
                return (
                  <Link href={`/profile?address=${user.wallet_address}`} key={user.wallet_address} className="rank-link-wrapper">
                    <div className={`rank-row ${rank <= 3 ? 'top-tier-glow' : ''}`}>
-                      
-                      {/* RANK */}
+                     
                       <div className="rank-num">
                          <div style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
                             <span style={{fontSize:'14px', fontWeight:'700'}}>{rank}</span>
@@ -179,7 +162,6 @@ export default function LeaderboardPage() {
                          </div>
                       </div>
 
-                      {/* USER INFO */}
                       <div className="rank-user">
                          <div className="user-details-clean">
                             <span className={`addr ${user.username ? 'named' : 'anon'}`}>
@@ -198,7 +180,6 @@ export default function LeaderboardPage() {
                          </div>
                       </div>
 
-                      {/* SCORE & FOLLOW */}
                       <div className="rank-score-col">
                           <span className="score-val">{user.reputation_score}</span>
                           {!isMe && (

@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// ✅ IMPORT useAccount to get the TRUE chain status
 import { useWriteContract, useWaitForTransactionReceipt, useAccount, useSwitchChain } from 'wagmi';
 import { LAKUZO_CONTRACT_ADDRESS, LAKUZO_ABI } from '@/utils/constants';
 import { supabase } from '@/lib/supabaseClient';
 
-// ✅ TARGET: Base Mainnet
 const TARGET_CHAIN_ID = 8453; 
 
 interface Props {
@@ -16,7 +14,6 @@ interface Props {
 }
 
 export default function MarketVotingCard({ market, userAddress, isDetailView = false }: Props) {
-  // --- STATE ---
   const [hasVoted, setHasVoted] = useState(false);
   const [isVoting, setIsVoting] = useState<'YES' | 'NO' | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -24,30 +21,22 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
     yesRepAvg: 0, noRepAvg: 0, crowdYesPct: 50, totalVotes: 0
   });
 
-  // --- HOOKS ---
-  // 1. Get the actual connected chain from the wallet
   const { chain } = useAccount(); 
   const { switchChain } = useSwitchChain();
-  
-  // 2. Write Contract Hook (Using Async version for better error handling)
   const { data: hash, writeContractAsync, error: writeError } = useWriteContract();
-  
-  // 3. Wait for Transaction Confirmation
   const { isSuccess: isConfirmed, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
 
-  // --- LOGIC ---
+  // prequisite
 
-  // Check if market is closed/resolved
   const isEnded = market.active === false || market.status === 'closed' || market.status === 'resolved';
 
-  // Load initial data
   useEffect(() => {
     if (userAddress) checkStatus();
     fetchDetailedSentiment();
     setIsReady(true);
   }, [userAddress, market.id, isEnded]);
 
-  // Save to DB *after* blockchain confirmation
+  // save to db after confirmation
   useEffect(() => {
     if (isConfirmed && isVoting && userAddress) {
       saveVoteToSupabase();
@@ -92,22 +81,20 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
     if (!userAddress) return;
 
     try {
-        // 1. Ensure user exists
         await supabase.from('users').upsert(
           { wallet_address: userAddress, reputation_score: 100 }, 
           { onConflict: 'wallet_address', ignoreDuplicates: true }
         );
         
-        // 2. Get latest reputation score (Using maybeSingle to prevent crash)
         const { data: user } = await supabase
           .from('users')
           .select('reputation_score')
           .eq('wallet_address', userAddress)
-          .maybeSingle(); // ✅ FIXED: Resilient check
+          .maybeSingle();
           
         const currentRep = user?.reputation_score || 100;
 
-        // 3. Record the vote
+        // vote part
         await supabase.from('votes').insert({
           wallet_address: userAddress,
           market_id: market.id,
@@ -129,7 +116,6 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
     if (isEnded) return alert("Market is Resolved");
     if (!userAddress) return alert("Please Connect Wallet");
 
-    // ✅ ROBUST NETWORK CHECK
     if (!chain || chain.id !== TARGET_CHAIN_ID) {
         try {
             switchChain({ chainId: TARGET_CHAIN_ID });
@@ -140,11 +126,9 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
         }
     }
 
-    // Set UI to "Signing..."
     setIsVoting(choice);
     
     try {
-        // ✅ Using Async version to properly catch user rejections/errors
         await writeContractAsync({
           address: LAKUZO_CONTRACT_ADDRESS,
           abi: LAKUZO_ABI,
@@ -154,12 +138,11 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
         });
     } catch (err) {
         console.error("Transaction failed or rejected:", err);
-        // ✅ RESET STATE so buttons react again after an error
         setIsVoting(null);
     }
   };
 
-  // --- RENDER ---
+  // output
 
   const showResults = hasVoted || isEnded;
 
@@ -168,7 +151,7 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
   const totalRep = metrics.yesRepAvg + metrics.noRepAvg;
   const smartYesPct = totalRep > 0 ? (metrics.yesRepAvg / totalRep) * 100 : 50;
 
-  // VIEW 1: DETAIL HERO MODE
+ 
   if (isDetailView) {
     return (
       <div className="detail-voting-container">
@@ -179,7 +162,6 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
                <span className="dash-votes">{metrics.totalVotes} Community Votes</span>
              </div>
 
-             {/* 1. SMART MONEY SECTION */}
              <div className="dash-section">
                 <div className="section-label-row">
                    <span className="lbl">🧠 Smart Money (Avg Rep)</span>
@@ -201,7 +183,7 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
 
              <div className="dash-divider"></div>
 
-             {/* 2. CROWD SECTION */}
+             
              <div className="dash-section">
                 <div className="section-label-row">
                    <span className="lbl">👥 The Crowd (Vote Count)</span>
@@ -225,9 +207,9 @@ export default function MarketVotingCard({ market, userAddress, isDetailView = f
                   {isVoting === 'NO' || isConfirming ? 'Signing...' : 'Vote NO'}
                 </button>
              </div>
-             
-             {/* ERROR MESSAGE HANDLING */}
-             {writeError && (
+            
+             {/* fallback error */}
+            {writeError && (
                 <div className="text-red-500 text-xs mt-2 text-center">
                     {writeError.message.includes("Chain mismatch") || writeError.message.includes("chain")
                         ? "⚠️ Wrong Network. Please switch to Base Mainnet." 

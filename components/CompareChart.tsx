@@ -11,7 +11,7 @@ const COLORS = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'
 
 export default function CompareChart({ markets }: CompareProps) {
   const [data, setData] = useState<any[]>([]);
-  const [view, setView] = useState('ALL'); // Zoom State
+  const [view, setView] = useState('ALL'); 
 
   useEffect(() => {
     if (!markets || markets.length === 0) return;
@@ -21,19 +21,18 @@ export default function CompareChart({ markets }: CompareProps) {
   const processHistoryData = () => {
     const now = new Date().getTime();
     
-    // 1. Determine Start Time based on View
-    let startTime = now - (24 * 60 * 60 * 1000); // Default 1D
+   
+    let startTime = now - (24 * 60 * 60 * 1000); 
     if (view === '1H') startTime = now - (60 * 60 * 1000);
     if (view === '6H') startTime = now - (6 * 60 * 60 * 1000);
     if (view === '1D') startTime = now - (24 * 60 * 60 * 1000);
     if (view === '1W') startTime = now - (7 * 24 * 60 * 60 * 1000);
     if (view === '1M') startTime = now - (30 * 24 * 60 * 60 * 1000);
-    if (view === 'ALL') startTime = now - (90 * 24 * 60 * 60 * 1000); // Cap ALL to 3 months for performance
+    if (view === 'ALL') startTime = now - (90 * 24 * 60 * 60 * 1000); 
 
-    // 2. Create Time Buckets (Dynamic resolution)
-    // Less points for long views to keep it smooth
+ 
     const buckets: any[] = [];
-    const steps = 50; // Resolution target
+    const steps = 50; 
     const interval = (now - startTime) / steps;
 
     for (let t = startTime; t <= now; t += interval) {
@@ -44,30 +43,26 @@ export default function CompareChart({ markets }: CompareProps) {
           : new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
       };
 
-      // 3. Fill Prices for each market
+     
       markets.forEach((m) => {
-        // Start with current live price (from API check or DB)
         let price = m.current_yes_price || 0; 
 
-        // If we are looking at the past, try to find history
         if (t < now && m.price_history_7d && Array.isArray(m.price_history_7d)) {
            const history = m.price_history_7d;
-           // Find the last known price BEFORE this timestamp
            const relevantPoint = history.filter((h: any) => new Date(h.t).getTime() <= t).pop();
            
-           // If we found a point, use it. If not (market started later), use 0 or initial.
            if (relevantPoint) price = relevantPoint.p;
-           else if (new Date(history[0]?.t).getTime() > t) price = null; // Don't draw line before market existed
+           else if (new Date(history[0]?.t).getTime() > t) price = null;
         }
         
-        // Normalize
+      
         if (price !== null) point[m.id] = price;
       });
 
       buckets.push(point);
     }
     
-    // 4. Ensure the FINAL point matches the exact Live Price shown on cards
+   
     const finalPoint: any = { 
       time: now, 
       displayTime: 'Now' 
@@ -97,13 +92,12 @@ export default function CompareChart({ markets }: CompareProps) {
   return (
     <div style={{ width: '100%', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', padding: '16px', border: '1px solid #222' }}>
       
-      {/* HEADER WITH TOGGLES */}
+    
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h3 style={{ margin:0, fontSize:'12px', color:'#666', letterSpacing:'1px', textTransform:'uppercase' }}>
           Performance Comparison
         </h3>
         
-        {/* Toggle Buttons (Reused Logic) */}
         <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '8px' }}>
           {(['1H', '6H', '1D', '1W', '1M', 'ALL'] as const).map((r) => (
             <button
@@ -173,7 +167,7 @@ export default function CompareChart({ markets }: CompareProps) {
                 fill={`url(#grad${i})`}
                 strokeWidth={2}
                 connectNulls={true}
-                isAnimationActive={false} // Disable animation for snappy toggling
+                isAnimationActive={false} 
               />
             ))}
           </AreaChart>

@@ -16,16 +16,13 @@ export async function GET(request: Request) {
     let winner = null;
     let livePrice = null;
 
-    // 1. POLYMARKET CHECK
     if (platform === 'Polymarket') {
       const res = await fetch(`https://gamma-api.polymarket.com/markets/${externalId}`);
       if (res.ok) {
         const data = await res.json();
         
-        // Check Status
         if (data.closed || data.resolved) {
           isResolved = true;
-          // Deduce Winner
           if (data.outcomePrices && data.outcomes) {
              try {
                  const outcomes = JSON.parse(data.outcomes);
@@ -35,14 +32,12 @@ export async function GET(request: Request) {
              } catch(e) { console.error("Parse error", e); }
           }
         } 
-        // Get Live Price
         else if (data.outcomePrices) {
            const prices = JSON.parse(data.outcomePrices);
            if (prices[0]) livePrice = parseFloat(prices[0]);
         }
       }
     } 
-    // 2. KALSHI CHECK
     else if (platform === 'Kalshi') {
       const res = await fetch(`https://api.elections.kalshi.com/trade-api/v2/markets/${externalId}`);
       if (res.ok) {
@@ -63,13 +58,11 @@ export async function GET(request: Request) {
       }
     }
 
-    // 3. DATABASE REPAIR
     if (isResolved) {
       console.log(`⚡ Lazy Repair: ${id} is resolved. Winner: ${winner}`);
       
-      // FIXED: Only update columns that exist in your schema
       const updatePayload: any = { 
-        active: false, // Set active to false implies it's closed
+        active: false, // 
         updated_at: new Date().toISOString()
       };
       

@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 
-
-
 interface Market {
   id: string;
   title: string;
@@ -29,7 +27,7 @@ const formatEnding = (dateString: string) => {
   if (diffHours < 24) return `${Math.ceil(diffHours)}h Left`;
   if (diffHours < 48) return "Tomorrow";
   
-  // ✅ LOGIC MAINTAINED: Year is included
+ 
   return end.toLocaleDateString('en-US', { 
     month: 'short', 
     day: 'numeric', 
@@ -44,14 +42,11 @@ export default function MarketList() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  
-  // --- FILTERS ---
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [platform, setPlatform] = useState('ALL'); 
   const [status, setStatus] = useState('ACTIVE'); 
   const [sortBy, setSortBy] = useState('volume_desc');
-  // ✅ FEATURE RESTORED: Date Filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
@@ -66,7 +61,6 @@ export default function MarketList() {
     setPage(0);
     setHasMore(true);
     fetchMarkets(0, true); 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platform, status, sortBy, debouncedSearch, startDate, endDate]); 
 
   async function fetchMarkets(pageIndex: number, isFresh: boolean) {
@@ -76,7 +70,6 @@ export default function MarketList() {
 
     if (debouncedSearch.trim()) query = query.ilike('title', `%${debouncedSearch}%`);
     
-    // ✅ LOGIC MAINTAINED: Live = Future Only
     if (status === 'ACTIVE') {
       query = query.eq('active', true).gt('end_date', new Date().toISOString());
     } 
@@ -85,8 +78,6 @@ export default function MarketList() {
     }
     
     if (platform !== 'ALL') query = query.ilike('platform', platform); 
-    
-    // ✅ FEATURE RESTORED: Date Query Logic
     if (startDate) query = query.gte('end_date', startDate);
     if (endDate) query = query.lte('end_date', endDate);
 
@@ -127,10 +118,9 @@ export default function MarketList() {
   };
 
   return (
-    // ✅ UI FIX: Using Dark Mode Class
     <div className="mobile-container-dark">
       
-      {/* --- HEADER --- */}
+      {/* header */}
       <div className="sticky-header-dark">
         <input 
           type="text" 
@@ -161,7 +151,7 @@ export default function MarketList() {
            </select>
         </div>
 
-        {/* ✅ FEATURE RESTORED: Date Pickers */}
+        {/* date picker */}
         <div className="filter-row mt-2">
             <div className="date-group-dark">
                 <span className="tiny-label">Ends After</span>
@@ -174,7 +164,7 @@ export default function MarketList() {
         </div>
       </div>
 
-      {/* --- MARKET FEED --- */}
+      {/* list market */}
       <div className="market-feed">
         {loading && <div className="loading-spinner-dark">Scanning Markets...</div>}
 
@@ -182,10 +172,7 @@ export default function MarketList() {
           const isSelected = selectedIds.has(market.id);
           const yesPrice = market.best_ask_yes ?? market.current_yes_price;
           const noPrice = market.best_ask_no ?? (1 - (yesPrice || 0.5));
-          
           const totalCost = (yesPrice || 0) + (noPrice || 0);
-          
-          // ✅ FEATURE RESTORED: Full Arbitrage Logic (Buy & Mint)
           const isBuyArb = totalCost < 0.99 && market.active;
           const isMintArb = totalCost > 1.01 && market.active;
           const isArb = isBuyArb || isMintArb;
@@ -203,7 +190,7 @@ export default function MarketList() {
               {isArb && <div className="arb-badge-gold">⚡ {profitText}</div>}
 
               <div className="card-top">
-                {/* ✅ FEATURE RESTORED: Kalshi "K" Placeholder */}
+                {/* logo kalshi */}
                 {market.platform === 'Kalshi' ? (
                   <div className="kalshi-k-placeholder">K</div>
                 ) : (

@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import MarketPairCard from '@/components/MarketPairCard';
 
-// Helper to calculate yield
 const getYieldValue = (pair: any) => {
   const { poly_yes, poly_no, kalshi_yes, kalshi_no, match_type } = pair;
   let costA, costB;
@@ -24,17 +23,12 @@ const getYieldValue = (pair: any) => {
 
 export default function PairsPage() {
   const router = useRouter();
-
-  // --- STATE ---
   const [pairs, setPairs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Filters
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('ALL'); 
   const [sortBy, setSortBy] = useState('yield_desc');
 
-  // --- FETCH ---
   useEffect(() => {
     fetchPairs();
   }, []);
@@ -51,19 +45,14 @@ export default function PairsPage() {
     setLoading(false);
   }
 
-  // --- LOGIC: Filter & Sort ---
   const filteredPairs = pairs
     .filter((pair) => {
-      // 1. SMART CLEANUP: If either market is closed, hide the pair
       if (!pair.poly_active || !pair.kalshi_active) return false;
-
-      // 2. Search Filter
       const term = search.toLowerCase();
       const matchesSearch = 
         pair.poly_title?.toLowerCase().includes(term) || 
         pair.kalshi_title?.toLowerCase().includes(term);
-
-      // 3. Type Filter
+        
       const matchesType = 
         filterType === 'ALL' ? true : 
         filterType === 'INVERSE' ? pair.match_type === 'Inverse' :
@@ -72,15 +61,13 @@ export default function PairsPage() {
       return matchesSearch && matchesType;
     })
     .sort((a, b) => {
-      // 4. Sorting Logic
       if (sortBy === 'yield_desc') {
-        return getYieldValue(b) - getYieldValue(a); // High Yield first
+        return getYieldValue(b) - getYieldValue(a);
       }
       if (sortBy === 'ending_soon') {
-        // Sort by whichever market ends sooner
         const endA = Math.min(new Date(a.poly_end_date).getTime(), new Date(a.kalshi_end_date).getTime());
         const endB = Math.min(new Date(b.poly_end_date).getTime(), new Date(b.kalshi_end_date).getTime());
-        return endA - endB; // Earliest date first
+        return endA - endB; 
       }
       if (sortBy === 'conf_desc') {
         return b.confidence_score - a.confidence_score;
@@ -94,7 +81,6 @@ export default function PairsPage() {
   return (
     <div className="mobile-container-dark">
       
-      {/* --- STICKY HEADER --- */}
       <div className="sticky-header-dark">
         <input 
           type="text" 
@@ -128,7 +114,6 @@ export default function PairsPage() {
         </div>
       </div>
 
-      {/* --- FEED --- */}
       <div className="market-feed">
         {loading && (
            <div className="loading-spinner-dark">Scanning for Alpha...</div>

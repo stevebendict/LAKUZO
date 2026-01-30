@@ -10,11 +10,9 @@ export default function MarketPairCard({ pair }: MarketPairProps) {
   const router = useRouter();
   const { poly_id, kalshi_id, poly_yes, poly_no, kalshi_yes, kalshi_no, match_type } = pair;
 
-  // --- LOGIC: Calculate Yield for Both Sides ---
   let row1, row2;
 
   if (match_type === 'Inverse') {
-    // INVERSE: Poly Yes == Kalshi No.
     const cost1 = (poly_yes || 0) + (kalshi_yes || 0);
     const yield1 = cost1 < 1 ? ((1 - cost1) * 100).toFixed(1) : null;
     
@@ -34,7 +32,6 @@ export default function MarketPairCard({ pair }: MarketPairProps) {
     };
 
   } else {
-    // DIRECT: Poly Yes == Kalshi Yes.
     const cost1 = (poly_yes || 0) + (kalshi_no || 0);
     const yield1 = cost1 < 1 ? ((1 - cost1) * 100).toFixed(1) : null;
 
@@ -76,20 +73,18 @@ export default function MarketPairCard({ pair }: MarketPairProps) {
   );
 
   return (
-    // Reusing your existing 'market-card-dark' class for consistency
     <div 
       onClick={handleAnalyze}
       className={`market-card-dark ${hasYield ? 'arb-glow-gold' : ''}`}
-      style={{ borderRadius: '12px', padding: '16px', marginBottom: '16px' }} // Local override for card spacing
+      style={{ borderRadius: '12px', padding: '16px', marginBottom: '16px' }}
     >
-      {/* "Impulsive" Badge using your existing class */}
       {hasYield && (
         <div className="arb-badge-gold">
           ARBITRAGE DETECTED
         </div>
       )}
 
-      {/* HEADER: Image + Title using existing classes */}
+      {/* header */}
       <div className="card-top">
         <img 
           src={pair.poly_image || '/placeholder_icon.png'} 
@@ -116,7 +111,6 @@ export default function MarketPairCard({ pair }: MarketPairProps) {
         </div>
       </div>
 
-      {/* ACTION ROWS (New CSS) */}
       <div style={{ marginTop: '12px' }}>
         <RenderRow data={row1} />
         <RenderRow data={row2} />

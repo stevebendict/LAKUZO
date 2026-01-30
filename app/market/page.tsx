@@ -5,12 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useAccount } from 'wagmi';
 import { ConnectWallet } from '@coinbase/onchainkit/wallet';
-
-// COMPONENTS
 import MarketChart from '@/components/MarketChart';
 import MarketVotingCard from '@/components/MarketVotingCard';
-
-// UTILS
 import { getMarketUrl, getOrderBook, MarketData } from '@/utils/marketUtils';
 
 function MarketContent() {
@@ -18,8 +14,6 @@ function MarketContent() {
   const id = searchParams.get('id');
   
   const { address, isConnected } = useAccount();
-  
-  // --- STATE ---
   const [market, setMarket] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [livePrice, setLivePrice] = useState<number | null>(null);
@@ -27,12 +21,10 @@ function MarketContent() {
   const [isWatchlisted, setIsWatchlisted] = useState(false);
   const [isResolved, setIsResolved] = useState(false);
 
-  // 1. INITIAL LOAD
   useEffect(() => {
     if (!id) return;
 
     async function init() {
-      // A. Fetch Market from DB
       const { data, error } = await supabase
         .from('markets')
         .select('*')
@@ -46,21 +38,15 @@ function MarketContent() {
       }
       setMarket(data);
 
-      // B. Load History (From DB/Scraper)
-      // We rely on the scraper's 'price_history_7d' for the chart.
       if (data.price_history_7d && Array.isArray(data.price_history_7d)) {
         setHistory(data.price_history_7d);
       }
 
-      // C. Check Resolution
-      // If DB says closed (active=false), trust it.
       const dbResolved = !data.active || data.status === 'closed' || data.status === 'resolved';
       setIsResolved(dbResolved);
 
       if (address) checkWatchlist(data.id);
       
-      // D. User-Sweeper (Lazy Repair)
-      // If DB says "Active", double-check with the Live API to see if it just ended.
       if (!dbResolved) {
         verifyRealTimeStatus(data);
       }
@@ -70,25 +56,19 @@ function MarketContent() {
     init();
   }, [id, address]);
 
-  // --- ACTIONS ---
-
-  // This checks the Live API (Polymarket/Kalshi) via your new route
   async function verifyRealTimeStatus(marketData: any) {
     try {
       const extId = marketData.external_id || marketData.condition_id;
       
-      // Call your backend route to verify status
       const res = await fetch(`/api/check-status?id=${marketData.id}&platform=${marketData.platform}&external_id=${extId}`);
       
       if (res.ok) {
         const result = await res.json();
         
-        // CASE 1: Market is actually Resolved (DB updated by route)
         if (result.updated || result.status === 'resolved') {
           console.log("⚡ Live Update: Market just resolved!");
           setIsResolved(true);
           
-          // Update local market object so UI (Voting Card) updates immediately
           setMarket((prev: any) => ({ 
              ...prev, 
              active: false, 
@@ -96,7 +76,6 @@ function MarketContent() {
              winning_outcome: result.winner || prev.winning_outcome 
           }));
         } 
-        // CASE 2: Market is Active -> Get Live Price for display
         else if (result.livePrice) {
            setLivePrice(result.livePrice);
         }
@@ -130,13 +109,10 @@ function MarketContent() {
 
     try {
       if (isWatchlisted) {
-        // REMOVE
-        // Find ALL watchlists owned by this wallet
-        const { data: lists } = await supabase.from('watchlists').select('id').ilike('user_wallet', address);
+       const { data: lists } = await supabase.from('watchlists').select('id').ilike('user_wallet', address);
         
         if (lists && lists.length > 0) {
           const listIds = lists.map(l => l.id);
-          // Remove this market from ANY of them
           await supabase.from('watchlist_items')
             .delete()
             .in('watchlist_id', listIds)
@@ -145,8 +121,6 @@ function MarketContent() {
           setIsWatchlisted(false);
         }
       } else {
-        // ADD
-        // 1. Try to find the default "My Watchlist" for this wallet
         let { data: targetList } = await supabase
           .from('watchlists')
           .select('id')
@@ -154,7 +128,6 @@ function MarketContent() {
           .eq('name', 'My Watchlist')
           .maybeSingle();
 
-        // 2. If it doesn't exist, create it (Wallet-First approach)
         if (!targetList) {
              const { data: newList, error } = await supabase
               .from('watchlists')
@@ -162,7 +135,6 @@ function MarketContent() {
                 user_wallet: address, 
                 name: 'My Watchlist',
                 description: 'Default favorites'
-                // We do NOT send user_id anymore
               })
               .select()
               .single();
@@ -198,7 +170,6 @@ function MarketContent() {
   const tradeUrl = getMarketUrl(market as MarketData);
   const isArb = (book.buyYes + book.buyNo) < 0.99;
   
-  // LIVE PRICE PRIORITY: API > Scraper
   const currentPriceRaw = livePrice ?? book.buyYes;
   const displayPrice = (currentPriceRaw * 100).toFixed(1);
 
@@ -231,7 +202,6 @@ function MarketContent() {
            </div>
         </div>
 
-        {/* CHART CONTAINER */}
         <div style={{ marginTop: '20px' }}>
            <MarketChart 
               history={history} 
@@ -278,10 +248,8 @@ function MarketContent() {
         </p>
       </div>
 
-      {/* The Button */}
       <ConnectWallet className="cb-wallet-custom" />
       
-      {/* Optional: Trust Badge */}
       <span style={{ fontSize: '10px', color: '#555', marginTop: '8px' }}>
         Powered by Base & Coinbase
       </span>

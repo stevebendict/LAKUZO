@@ -15,24 +15,21 @@ function ProfileContent() {
   const targetAddress = searchParams.get('address'); 
   const router = useRouter();
   
-  const { address: myAddress } = useAccount(); // The Visitor
+  const { address: myAddress } = useAccount(); 
   
-  // --- STATE ---
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ followers: 0, following: 0, reputation: 100, totalVotes: 0 });
   const [activeTab, setActiveTab] = useState<'WORKSPACES' | 'HISTORY'>('WORKSPACES');
-  const [items, setItems] = useState<any[]>([]); // Data for the active tab
+  const [items, setItems] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
 
-  // 1. INITIAL FETCH
   useEffect(() => {
     if (targetAddress) {
         fetchPublicProfile();
     }
-  }, [targetAddress, myAddress]); // Re-run if my wallet connects/disconnects
+  }, [targetAddress, myAddress]);
 
-  // 2. TAB SWITCHER
   useEffect(() => {
     if (profile) fetchTabContent();
   }, [activeTab, profile]);
@@ -40,12 +37,10 @@ function ProfileContent() {
   async function fetchPublicProfile() {
     setLoading(true);
     
-    // A. GET USER DETAILS
     const { data: user } = await supabase.from('users').select('*').eq('wallet_address', targetAddress).maybeSingle();
     const displayUser = user || { username: 'Anon', wallet_address: targetAddress, reputation_score: 100, total_votes: 0 };
     setProfile(displayUser);
 
-    // B. GET SOCIAL STATS
     const { count: followers } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_address', targetAddress);
     const { count: following } = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_address', targetAddress);
     
@@ -55,7 +50,7 @@ function ProfileContent() {
        reputation: displayUser.reputation_score,
        totalVotes: displayUser.total_votes || 0
     });
-    // C. CHECK IF I AM FOLLOWING THEM
+    // check for follow
     if (myAddress && targetAddress) {
       const { data: follow } = await supabase
         .from('follows')
@@ -73,9 +68,7 @@ function ProfileContent() {
   async function fetchTabContent() {
     if (!targetAddress) return;
     
-    // TAB 1: PUBLIC WORKSPACES (The Curated Content)
     if (activeTab === 'WORKSPACES') {
-        // Fetch workspaces EXCLUDING "My Watchlist" (Private default)
         const { data: ws } = await supabase
            .from('watchlists')
            .select('*')
@@ -84,7 +77,6 @@ function ProfileContent() {
            .order('created_at', { ascending: false });
 
         if (ws && ws.length > 0) {
-            // Fetch previews manually (Robust Method)
             const wsIds = ws.map(w => w.id);
             const { data: wItems } = await supabase.from('watchlist_items').select('watchlist_id, market_id').in('watchlist_id', wsIds);
             
@@ -106,7 +98,6 @@ function ProfileContent() {
         }
     }
 
-    // TAB 2: VOTE HISTORY (The "Skin in the Game" Proof)
     else if (activeTab === 'HISTORY') {
         const { data: votes } = await supabase
            .from('votes')
@@ -118,13 +109,11 @@ function ProfileContent() {
     }
   }
 
-  // --- ACTIONS ---
 
   const handleFollowToggle = async () => {
     if (!myAddress) return alert("Please connect your wallet to follow.");
     if (!targetAddress) return;
 
-    // Optimistic Update
     setIsFollowing(!isFollowing);
     setStats(prev => ({ 
         ...prev, 
@@ -151,7 +140,6 @@ function ProfileContent() {
   return (
     <div className="mobile-container-dark" style={{ paddingBottom: '120px' }}>
       
-      {/* PUBLIC HEADER */}
       <div className="profile-header">
          <div className="profile-top">
             <div className="profile-avatar-lg">
@@ -166,7 +154,6 @@ function ProfileContent() {
                   <span className="stat-num">{stats.totalVotes}</span>
                   <span className="stat-label">Votes</span>
                </div>
-               {/* STATIC STATS (Not Clickable for Visitors) */}
                <div className="stat-item">
                   <span className="stat-num">{stats.followers}</span>
                   <span className="stat-label">Followers</span>
@@ -188,7 +175,7 @@ function ProfileContent() {
                 <button 
                   onClick={handleFollowToggle} 
                   className={isFollowing ? "btn-edit-profile" : "btn-primary-full"}
-                  style={isFollowing ? {} : { marginTop: 0 }} // Remove margin if using primary style
+                  style={isFollowing ? {} : { marginTop: 0 }}
                 >
                   {isFollowing ? 'Unfollow' : 'Follow'}
                 </button>
@@ -197,7 +184,6 @@ function ProfileContent() {
          </div>
       </div>
 
-      {/* TABS (No Search Bar - Keep it Clean) */}
       <div className="sticky-control-bar">
          <div className="ios-segment-wrapper">
             <div className="ios-segment">
@@ -212,7 +198,7 @@ function ProfileContent() {
             <div className="empty-box">No public activity yet.</div>
          ) : (
              <>
-                {/* PUBLIC BUNDLES */}
+
                 {activeTab === 'WORKSPACES' && (
                     <div className="workspace-grid-container">
                         {items.map((w, i) => (
@@ -232,7 +218,6 @@ function ProfileContent() {
                     </div>
                 )}
 
-                {/* PUBLIC HISTORY */}
                 {activeTab === 'HISTORY' && items.map((vote, i) => (
                     <div key={`${vote.id}-${i}`} className="history-row">
                         <div className="h-icon-col">

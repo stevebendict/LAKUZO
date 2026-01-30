@@ -14,24 +14,17 @@ function WorkspaceContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { address } = useAccount();
-
-  // --- STATE ---
   const [loading, setLoading] = useState(true);
   const [markets, setMarkets] = useState<any[]>([]);
-  
-  // Bundle Metadata
   const [bundleId, setBundleId] = useState<string | null>(null);
   const [bundleName, setBundleName] = useState('');
   const [description, setDescription] = useState('');
   const [creator, setCreator] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
-
-  // Permissions & Modes
   const [isOwner, setIsOwner] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // 1. INITIAL FETCH
   useEffect(() => {
     const existingBundleId = searchParams.get('id');       
     const selectedIdsParam = searchParams.get('ids'); 
@@ -39,11 +32,9 @@ function WorkspaceContent() {
     async function init() {
       let loadedMarkets: any[] = [];
 
-      // A. VIEWING EXISTING BUNDLE
       if (existingBundleId) {
         setBundleId(existingBundleId);
         
-        // 1. Get the Watchlist Details (Simple Fetch)
         const { data: wl } = await supabase
           .from('watchlists')
           .select('*')
@@ -55,12 +46,10 @@ function WorkspaceContent() {
           setDescription(wl.description || '');
           setCreatedAt(new Date(wl.created_at).toLocaleDateString());
           
-          // 2. Check Ownership (Case Insensitive!)
           if (address && wl.user_wallet && wl.user_wallet.toLowerCase() === address.toLowerCase()) {
             setIsOwner(true);
           }
 
-          // 3. Get Creator Profile (Manual Fetch)
           if (wl.user_wallet) {
              const { data: user } = await supabase
                 .from('users')
@@ -70,7 +59,6 @@ function WorkspaceContent() {
              setCreator(user?.username || wl.user_wallet.slice(0,6));
           }
 
-          // 4. Get the Items (Manual Join)
           const { data: items } = await supabase
              .from('watchlist_items')
              .select('market_id')
@@ -78,13 +66,11 @@ function WorkspaceContent() {
 
           if (items && items.length > 0) {
             const marketIds = items.map((i: any) => i.market_id);
-            // 5. Get the Markets
             const { data: mData } = await supabase.from('markets').select('*').in('id', marketIds);
             loadedMarkets = mData || [];
           }
         }
       } 
-      // B. CREATING NEW (Draft Mode)
       else if (selectedIdsParam) {
         setIsEditing(true); 
         setIsOwner(true);
@@ -103,7 +89,6 @@ function WorkspaceContent() {
     init();
   }, [searchParams, address]);
 
-  // --- LIVE STATUS CHECKER ---
   async function verifyBatchStatus(marketList: any[]) {
     const activeMarkets = marketList.filter(m => m.active);
     activeMarkets.forEach(async (m) => {
@@ -127,7 +112,6 @@ function WorkspaceContent() {
     });
   }
 
-  // --- ACTIONS ---
   const handleSave = async () => {
     if (!address) return alert("Connect wallet to save.");
     if (!bundleName.trim()) return alert("Bundle name is required.");
@@ -135,10 +119,8 @@ function WorkspaceContent() {
 
     try {
       if (bundleId && isOwner) {
-        // UPDATE (Only if Owner)
         await supabase.from('watchlists').update({ name: bundleName, description: description }).eq('id', bundleId);
       } else {
-        // CREATE NEW / CLONE (For visitors or new drafts)
         const { data: newWl } = await supabase
           .from('watchlists')
           .insert({ user_wallet: address, name: bundleName, description: description })
@@ -151,7 +133,7 @@ function WorkspaceContent() {
           alert("Bundle saved to your Library!");
           router.replace(`/workspace?id=${newWl.id}`);
           setBundleId(newWl.id);
-          setIsOwner(true); // Now you own this copy
+          setIsOwner(true); 
         }
       }
       setIsEditing(false);
@@ -203,7 +185,6 @@ function WorkspaceContent() {
                 <div className="ws-controls">
                    <button onClick={handleShare} className="icon-btn-circle">🔗</button>
                    
-                   {/* OWNER gets Edit, VISITOR gets Clone */}
                    {isOwner ? (
                      <button onClick={() => setIsEditing(true)} className="icon-btn-circle">✎</button>
                    ) : (
@@ -224,7 +205,6 @@ function WorkspaceContent() {
         </div>
       )}
 
-      {/* MARKETS LIST */}
       <h3 className="ws-section-title">Analysis Feed ({markets.length})</h3>
       <div className="ws-list-stack">
         {markets.length === 0 ? (

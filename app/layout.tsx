@@ -10,7 +10,6 @@ import UserSync from "@/components/UserSync";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const sourceCodePro = Source_Code_Pro({ variable: "--font-source-code-pro", subsets: ["latin"] });
 
-// 1. Set Base URL (Defaults to lakuzo.com if env var is missing)
 const baseUrl = process.env.NEXT_PUBLIC_URL 
   ? `https://${process.env.NEXT_PUBLIC_URL}` 
   : 'https://lakuzo.com';
@@ -18,9 +17,8 @@ const baseUrl = process.env.NEXT_PUBLIC_URL
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   
-  // 2. Title Template
   title: {
-    default: "Lakuzo | The Prediction Market Aggregator",
+    default: "Lakuzo | Prediction Market Aggregator",
     template: "%s | Lakuzo",
   },
   
@@ -30,7 +28,6 @@ export const metadata: Metadata = {
   authors: [{ name: "Lakuzo Team", url: baseUrl }],
   keywords: ["Prediction Markets", "Polymarket", "Kalshi", "Arbitrage", "Crypto Betting", "Forecasting", "Base", "Ethereum"],
   
-  // 3. OpenGraph (Social Sharing)
   openGraph: {
     title: "Lakuzo - Trade Every Market. One Interface.",
     description: "Compare odds across Polymarket & Kalshi. Find arbitrage instantly.",
@@ -38,7 +35,7 @@ export const metadata: Metadata = {
     siteName: "Lakuzo",
     images: [
       {
-        url: "/og-image.png", // Must be in public/og-image.png
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Lakuzo Dashboard Preview",
@@ -48,7 +45,6 @@ export const metadata: Metadata = {
     type: "website",
   },
 
-  // 4. Twitter Card
   twitter: {
     card: "summary_large_image",
     title: "Lakuzo | Prediction Market Aggregator",
@@ -58,13 +54,11 @@ export const metadata: Metadata = {
     site: "@lakuzoapp",
   },
 
-  // 5. Icons
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png", 
   },
 
-  // ✅ 6. Farcaster Frame v2 (Mini App) Metadata
   other: {
     "fc:frame": JSON.stringify({
       version: "next",
